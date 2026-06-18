@@ -67,9 +67,9 @@ namespace AKNet.Udp3Tcp.Client
             mSocket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer, int.MaxValue);
 
             ReceiveArgs.SetBuffer(new byte[Config.nUdpPackageFixedSize], 0, Config.nUdpPackageFixedSize);
-            ReceiveArgs.Completed += ProcessReceive;
+            ReceiveArgs.Completed += OnReceiveCompleted;
             SendArgs.SetBuffer(new byte[Config.nUdpPackageFixedSize], 0, Config.nUdpPackageFixedSize);
-            SendArgs.Completed += ProcessSend;
+            SendArgs.Completed += OnSendCompleted;
 
             bReceiveIOContexUsed = false;
             bSendIOContexUsed = false;

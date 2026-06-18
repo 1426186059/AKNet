@@ -54,7 +54,7 @@ namespace AKNet.Udp3Tcp.Server
             mSocket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
             mSocket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer, int.MaxValue);
             ReceiveArgs = new SocketAsyncEventArgs();
-            ReceiveArgs.Completed += ProcessReceive;
+            ReceiveArgs.Completed += OnReceiveCompleted;
             ReceiveArgs.SetBuffer(new byte[Config.nUdpPackageFixedSize], 0, Config.nUdpPackageFixedSize);
             ReceiveArgs.RemoteEndPoint = mEndPointEmpty;
             

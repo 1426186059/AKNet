@@ -9,6 +9,7 @@
 ************************************Copyright*****************************************/
 using AKNet.Common;
 using System;
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
@@ -48,6 +49,7 @@ namespace AKNet.Tcp.Client
         private readonly SocketAsyncEventArgs mSendIOContex = new SocketAsyncEventArgs();
         private readonly SocketAsyncEventArgs mReceiveIOContex = new SocketAsyncEventArgs();
 
+        private readonly ConcurrentQueue<Action> mSyncQueue = new ConcurrentQueue<Action>();
         private readonly ConfigInstance mConfigInstance;
 
         public NetClientMain(ConfigInstance mConfig = null)

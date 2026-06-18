@@ -58,55 +58,36 @@ namespace AKNet.Udp3Tcp.Client
 
         private void StartReceiveEventArg()
         {
-            bool bIOPending = false;
-            if (mSocket != null)
+            while (true)
             {
-                try
+                bool bIOPending = false;
+                if (mSocket != null)
                 {
-                    bIOPending = mSocket.ReceiveFromAsync(ReceiveArgs);
+                    try
+                    {
+                        bIOPending = mSocket.ReceiveFromAsync(ReceiveArgs);
+                    }
+                    catch (Exception e)
+                    {
+                        bReceiveIOContexUsed = false;
+                        DisConnectedWithException(e);
+                    }
                 }
-                catch (Exception e)
+                else
                 {
                     bReceiveIOContexUsed = false;
-                    DisConnectedWithException(e);
                 }
-            }
-            else
-            {
-                bReceiveIOContexUsed = false;
-            }
-            
-            if (!bIOPending)
-            {
-                System.Threading.Tasks.Task.Run(() => ProcessReceive(null, ReceiveArgs));
+
+                if (bIOPending) break;
+
+                ProcessReceive(null, ReceiveArgs);
             }
         }
 
-        private void StartSendEventArg()
+        private void OnReceiveCompleted(object sender, SocketAsyncEventArgs e)
         {
-            bool bIOPending = false;
-
-            if (mSocket != null)
-            {
-                try
-                {
-                    bIOPending = mSocket.SendToAsync(SendArgs);
-                }
-                catch (Exception e)
-                {
-                    bSendIOContexUsed = false;
-                    DisConnectedWithException(e);
-                }
-            }
-            else
-            {
-                bSendIOContexUsed = false;
-            }
-                
-            if (!bIOPending)
-            {
-                System.Threading.Tasks.Task.Run(() => ProcessSend(null, SendArgs));
-            }
+            ProcessReceive(sender, e);
+            StartReceiveEventArg();
         }
 
         private void ProcessReceive(object sender, SocketAsyncEventArgs e)
@@ -115,20 +96,57 @@ namespace AKNet.Udp3Tcp.Client
             {
                 MultiThreading_ReceiveWaitCheckNetPackage(e);
             }
-            
-            StartReceiveEventArg();
         }
 
-        private void ProcessSend(object sender, SocketAsyncEventArgs e)
+        // ------------------ 发送 ------------------
+
+        private void StartSendEventArg()
+        {
+            while (true)
+            {
+                bool bIOPending = false;
+
+                if (mSocket != null)
+                {
+                    try
+                    {
+                        bIOPending = mSocket.SendToAsync(SendArgs);
+                    }
+                    catch (Exception e)
+                    {
+                        bSendIOContexUsed = false;
+                        DisConnectedWithException(e);
+                    }
+                }
+                else
+                {
+                    bSendIOContexUsed = false;
+                }
+
+                if (bIOPending) break;
+
+                if (!ProcessSendSync(null, SendArgs)) break;
+            }
+        }
+
+        private void OnSendCompleted(object sender, SocketAsyncEventArgs e)
+        {
+            if (ProcessSendSync(sender, e))
+                StartSendEventArg();
+        }
+
+        // true=还有数据要继续发
+        private bool ProcessSendSync(object sender, SocketAsyncEventArgs e)
         {
             if (e.SocketError == SocketError.Success)
             {
-                SendNetStream2();
+                return SendNetStream2();
             }
             else
             {
                 bSendIOContexUsed = false;
                 DisConnectedWithSocketError(e.SocketError);
+                return false;
             }
         }
 
@@ -151,11 +169,14 @@ namespace AKNet.Udp3Tcp.Client
             if (!bSendIOContexUsed)
             {
                 bSendIOContexUsed = true;
-                System.Threading.Tasks.Task.Run(SendNetStream2);
+                if (SendNetStream2())
+                    StartSendEventArg();
             }
         }
-        
-        private void SendNetStream2()
+
+        // true=还有数据要发（调用方需调 StartSendEventArg 继续）
+        // false=发完了
+        private bool SendNetStream2()
         {
             var mSendArgSpan = SendArgs.Buffer.AsSpan();
             int nSendBytesCount = 0;
@@ -168,11 +189,12 @@ namespace AKNet.Udp3Tcp.Client
             {
                 nLastSendBytesCount = nSendBytesCount;
                 SendArgs.SetBuffer(0, nSendBytesCount);
-                StartSendEventArg();
+                return true;
             }
             else
             {
                 bSendIOContexUsed = false;
+                return false;
             }
         }
 
@@ -231,12 +253,3 @@ namespace AKNet.Udp3Tcp.Client
         }
     }
 }
-
-
-
-
-
-
-
-
-
