@@ -83,10 +83,8 @@ namespace AKNet.WebSocket.Client
                 SetSocketState(SOCKET_PEER_STATE.DISCONNECTING);
                 lock (mWsLock) { CloseSocket(); }
             }
-            else
-            {
-                SetSocketState(SOCKET_PEER_STATE.DISCONNECTED);
-            }
+            else { SetSocketState(SOCKET_PEER_STATE.DISCONNECTED); }
+
             NetLog.Log("WebSocket 客户端 主动 断开服务器 Finish......");
             return GetSocketState() == SOCKET_PEER_STATE.DISCONNECTED;
         }
@@ -94,48 +92,34 @@ namespace AKNet.WebSocket.Client
         public void SendNetStream(ReadOnlySpan<byte> mBufferSegment)
         {
             ResetSendHeartBeatTime();
-
-            lock (mSendStreamList)
-            {
-                mSendStreamList.WriteFrom(mBufferSegment);
-            }
-
-            if (!bSending)
-            {
-                bSending = true;
-                SendNetStream1();
-            }
+            lock (mSendStreamList) { mSendStreamList.WriteFrom(mBufferSegment); }
+            if (!bSending) { bSending = true; _ = Task.Run(SendLoopAsync); }
         }
 
-        private void SendNetStream1()
+        private async Task SendLoopAsync()
         {
             while (true)
             {
-                int nLength;
-                lock (mSendStreamList) { nLength = mSendStreamList.Length; }
-                if (nLength <= 0) { bSending = false; return; }
-
                 ClientWebSocket ws;
                 lock (mWsLock) { ws = mWebSocket; }
-                if (ws == null || ws.State != WebSocketState.Open) { bSending = false; return; }
 
-                byte[] tempBuf = new byte[Math.Min(mSendBuffer.Length, nLength)];
-                lock (mSendStreamList) { mSendStreamList.CopyTo(new Span<byte>(tempBuf, 0, tempBuf.Length)); }
+                int nLength;
+                lock (mSendStreamList) { nLength = mSendStreamList.Length; }
+                if (nLength <= 0 || ws == null || ws.State != WebSocketState.Open)
+                { bSending = false; return; }
+
+                nLength = Math.Min(mSendBuffer.Length, nLength);
+                lock (mSendStreamList) { mSendStreamList.CopyTo(new Span<byte>(mSendBuffer, 0, nLength)); }
 
                 try
                 {
-                    ws.SendAsync(new ArraySegment<byte>(tempBuf, 0, tempBuf.Length),
+                    await ws.SendAsync(new ArraySegment<byte>(mSendBuffer, 0, nLength),
                         WebSocketMessageType.Binary, true, System.Threading.CancellationToken.None)
-                        .GetAwaiter().GetResult();
+                        .ConfigureAwait(false);
 
-                    lock (mSendStreamList) { mSendStreamList.ClearBuffer(tempBuf.Length); }
+                    lock (mSendStreamList) { mSendStreamList.ClearBuffer(nLength); }
                 }
-                catch (InvalidOperationException)
-                {
-                    // 收发冲突，下帧重试
-                    bSending = false;
-                    return;
-                }
+                catch (InvalidOperationException) { bSending = false; return; }
                 catch { bSending = false; DisConnectedWithError(); return; }
             }
         }

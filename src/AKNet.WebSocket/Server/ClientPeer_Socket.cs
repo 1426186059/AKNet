@@ -74,36 +74,31 @@ namespace AKNet.WebSocket.Server
         {
             ResetSendHeartBeatTime();
             lock (mSendStreamList) { mSendStreamList.WriteFrom(mBufferSegment); }
-
-            if (!bSending)
-            {
-                bSending = true;
-                SendNetStream1();
-            }
+            if (!bSending) { bSending = true; _ = System.Threading.Tasks.Task.Run(SendLoopAsync); }
         }
 
         private bool bSending = false;
 
-        private void SendNetStream1()
+        private async System.Threading.Tasks.Task SendLoopAsync()
         {
             while (true)
             {
-                int nLength;
-                lock (mSendStreamList) { nLength = mSendStreamList.Length; }
-                if (nLength <= 0) { bSending = false; return; }
-
                 WsWebSocket ws;
                 lock (mWsLock) { ws = mWebSocket; }
-                if (ws == null || ws.State != WebSocketState.Open) { bSending = false; return; }
+
+                int nLength;
+                lock (mSendStreamList) { nLength = mSendStreamList.Length; }
+                if (nLength <= 0 || ws == null || ws.State != WebSocketState.Open)
+                { bSending = false; return; }
 
                 nLength = Math.Min(mSendBuffer.Length, nLength);
                 lock (mSendStreamList) { mSendStreamList.CopyTo(new Span<byte>(mSendBuffer, 0, nLength)); }
 
                 try
                 {
-                    ws.SendAsync(new ArraySegment<byte>(mSendBuffer, 0, nLength),
+                    await ws.SendAsync(new ArraySegment<byte>(mSendBuffer, 0, nLength),
                         WebSocketMessageType.Binary, true, System.Threading.CancellationToken.None)
-                        .GetAwaiter().GetResult();
+                        .ConfigureAwait(false);
 
                     lock (mSendStreamList) { mSendStreamList.ClearBuffer(nLength); }
                 }

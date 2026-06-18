@@ -47,7 +47,6 @@ namespace AKNet.WebSocket.Client
             catch { }
             finally
             {
-                MainThreadCheck.Check();
                 bReceiveTaskRunning = false;
                 DisConnectedWithError();
             }
