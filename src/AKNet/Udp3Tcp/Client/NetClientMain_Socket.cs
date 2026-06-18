@@ -123,7 +123,7 @@ namespace AKNet.Udp3Tcp.Client
         {
             if (e.SocketError == SocketError.Success)
             {
-                SendNetStream2(e.BytesTransferred);
+                SendNetStream2();
             }
             else
             {
@@ -151,20 +151,12 @@ namespace AKNet.Udp3Tcp.Client
             if (!bSendIOContexUsed)
             {
                 bSendIOContexUsed = true;
-                System.Threading.Tasks.Task.Run(()=> SendNetStream2());
+                System.Threading.Tasks.Task.Run(SendNetStream2);
             }
         }
         
-        private void SendNetStream2(int BytesTransferred = -1)
+        private void SendNetStream2()
         {
-            if (BytesTransferred >= 0)
-            {
-                if (BytesTransferred != nLastSendBytesCount)
-                {
-                    NetLog.LogError("UDP 发生短写");
-                }
-            }
-
             var mSendArgSpan = SendArgs.Buffer.AsSpan();
             int nSendBytesCount = 0;
             lock (mSendStreamList)
