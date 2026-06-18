@@ -13,14 +13,15 @@ using System.Net;
 using System.Net.WebSockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace AKNet.WebSocket.Client
 {
     internal partial class NetClientMain : NetClientInterface, ClientPeerBase
     {
         private readonly CryptoMgr mCryptoMgr;
-        private readonly ListenNetPackageMgr mPackageManager;
-        private readonly ListenClientPeerStateMgr mListenClientPeerStateMgr;
+        private readonly ListenNetPackageMgr mPackageManager = null;
+        private readonly ListenClientPeerStateMgr mListenClientPeerStateMgr = null;
 
         private double fReConnectServerCdTime = 0.0;
         private double fSendHeartBeatTime = 0.0;
@@ -31,26 +32,18 @@ namespace AKNet.WebSocket.Client
         private string Name = string.Empty;
         private uint ID = 0;
 
-        private byte[] mSendBuffer = new byte[1024];
         private readonly AkCircularBuffer mSendStreamList = new AkCircularBuffer();
         private readonly NetStreamCircularBuffer mReceiveStreamList = new NetStreamCircularBuffer();
         private readonly NetStreamReceivePackage mNetPackage = new NetStreamReceivePackage();
+        private byte[] mSendBuffer = new byte[1024];
 
-#if !UNITY_WEBGL || UNITY_EDITOR
         private ClientWebSocket mWebSocket = null;
-        private bool bReceiveTaskRunning = false;
-        private readonly CancellationTokenSource mCancellationTokenSource = new CancellationTokenSource();
-#endif
-
-#if UNITY_WEBGL && !UNITY_EDITOR
-        private int mWebSocketInstanceId = -1;
-        private static int sNextInstanceId = 0;
-        private byte[] mReceiveBuffer = new byte[1024 * 64];
-#endif
-
         private string ServerIp = "";
         private int nServerPort = 0;
         private IPEndPoint mIPEndPoint = null;
+        private bool bReceiveTaskRunning = false;
+        private bool bSending = false;
+        private readonly object mWsLock = new object();
 
         private readonly ConfigInstance mConfigInstance;
 
@@ -76,8 +69,6 @@ namespace AKNet.WebSocket.Client
             {
                 case SOCKET_PEER_STATE.CONNECTED:
                     {
-                        PollWebSocketEvents();
-
                         int nPackageCount = 0;
                         while (NetPackageExecute())
                         {
@@ -115,8 +106,6 @@ namespace AKNet.WebSocket.Client
                             NetLog.Log("心跳超时");
 #endif
                         }
-
-                        TryFlushSendBuffer();
                     }
                     break;
                 case SOCKET_PEER_STATE.RECONNECTING:
@@ -142,70 +131,21 @@ namespace AKNet.WebSocket.Client
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void SendHeartBeat()
-        {
-            SendNetData(CommonTcpLayerNetCommand.COMMAND_HEARTBEAT);
-        }
-
+        private void SendHeartBeat() { SendNetData(CommonTcpLayerNetCommand.COMMAND_HEARTBEAT); }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ResetSendHeartBeatTime()
-        {
-            fSendHeartBeatTime = 0f;
-        }
-
+        private void ResetSendHeartBeatTime() { fSendHeartBeatTime = 0f; }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void ReceiveHeartBeat()
-        {
-            fReceiveHeartBeatTime = 0f;
-        }
-
+        private void ReceiveHeartBeat() { fReceiveHeartBeatTime = 0f; }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void SetSocketState(SOCKET_PEER_STATE mSocketPeerState)
-        {
-            this.mSocketPeerState = mSocketPeerState;
-        }
-
-        public SOCKET_PEER_STATE GetSocketState()
-        {
-            return this.mSocketPeerState;
-        }
-
-        private void DisConnectedWithError()
-        {
-            var mSocketPeerState = GetSocketState();
-            if (mSocketPeerState == SOCKET_PEER_STATE.DISCONNECTING)
-            {
-                SetSocketState(SOCKET_PEER_STATE.DISCONNECTED);
-            }
-            else if (mSocketPeerState == SOCKET_PEER_STATE.CONNECTED ||
-                     mSocketPeerState == SOCKET_PEER_STATE.CONNECTING)
-            {
-                if (mConfigInstance.bAutoReConnect)
-                {
-                    SetSocketState(SOCKET_PEER_STATE.RECONNECTING);
-                }
-                else
-                {
-                    SetSocketState(SOCKET_PEER_STATE.DISCONNECTED);
-                }
-            }
-        }
+        private void SetSocketState(SOCKET_PEER_STATE mSocketPeerState) { this.mSocketPeerState = mSocketPeerState; }
+        public SOCKET_PEER_STATE GetSocketState() { return this.mSocketPeerState; }
 
         public void Reset()
         {
             SetSocketState(SOCKET_PEER_STATE.DISCONNECTED);
-            CloseSocket();
-
-            lock (mSendStreamList)
-            {
-                mSendStreamList.Reset();
-            }
-
-            lock (mReceiveStreamList)
-            {
-                mReceiveStreamList.Reset();
-            }
-
+            lock (mWsLock) { CloseSocket(); }
+            lock (mSendStreamList) { mSendStreamList.Reset(); }
+            lock (mReceiveStreamList) { mReceiveStreamList.Reset(); }
             fReConnectServerCdTime = 0.0f;
             fSendHeartBeatTime = 0.0;
             fReceiveHeartBeatTime = 0.0;
@@ -214,79 +154,47 @@ namespace AKNet.WebSocket.Client
         public void Release()
         {
             Reset();
-#if !UNITY_WEBGL || UNITY_EDITOR
-            mCancellationTokenSource.Cancel();
-#endif
+            lock (mSendStreamList) { mSendStreamList.Dispose(); }
+            lock (mReceiveStreamList) { mReceiveStreamList.Dispose(); }
+        }
 
-            lock (mSendStreamList)
-            {
-                mSendStreamList.Dispose();
-            }
+        public IPEndPoint GetIPEndPoint()
+        {
+            IPEndPoint mRemoteEndPoint = null;
+            try { if (mIPEndPoint != null) mRemoteEndPoint = mIPEndPoint; } catch { }
+            return mRemoteEndPoint;
+        }
 
-            lock (mReceiveStreamList)
+        private void CloseSocket()
+        {
+            if (mWebSocket != null)
             {
-                mReceiveStreamList.Dispose();
+                var ws = mWebSocket;
+                mWebSocket = null;
+                bReceiveTaskRunning = false;
+                try { ws.Dispose(); } catch { }
             }
         }
 
         public void addNetListenFunc(ushort nPackageId, Action<ClientPeerBase, NetPackage> fun)
-        {
-            mPackageManager.addNetListenFunc(nPackageId, fun);
-        }
-
+        { mPackageManager.addNetListenFunc(nPackageId, fun); }
         public void removeNetListenFunc(ushort nPackageId, Action<ClientPeerBase, NetPackage> fun)
-        {
-            mPackageManager.removeNetListenFunc(nPackageId, fun);
-        }
-
+        { mPackageManager.removeNetListenFunc(nPackageId, fun); }
         public void addNetListenFunc(Action<ClientPeerBase, NetPackage> func)
-        {
-            mPackageManager.addNetListenFunc(func);
-        }
-
+        { mPackageManager.addNetListenFunc(func); }
         public void removeNetListenFunc(Action<ClientPeerBase, NetPackage> func)
-        {
-            mPackageManager.removeNetListenFunc(func);
-        }
-
+        { mPackageManager.removeNetListenFunc(func); }
         public void addListenClientPeerStateFunc(Action<ClientPeerBase, SOCKET_PEER_STATE> mFunc)
-        {
-            mListenClientPeerStateMgr.addListenClientPeerStateFunc(mFunc);
-        }
-
+        { mListenClientPeerStateMgr.addListenClientPeerStateFunc(mFunc); }
         public void removeListenClientPeerStateFunc(Action<ClientPeerBase, SOCKET_PEER_STATE> mFunc)
-        {
-            mListenClientPeerStateMgr.removeListenClientPeerStateFunc(mFunc);
-        }
-
+        { mListenClientPeerStateMgr.removeListenClientPeerStateFunc(mFunc); }
         public void addListenClientPeerStateFunc(Action<ClientPeerBase> mFunc)
-        {
-            mListenClientPeerStateMgr.addListenClientPeerStateFunc(mFunc);
-        }
-
+        { mListenClientPeerStateMgr.addListenClientPeerStateFunc(mFunc); }
         public void removeListenClientPeerStateFunc(Action<ClientPeerBase> mFunc)
-        {
-            mListenClientPeerStateMgr.removeListenClientPeerStateFunc(mFunc);
-        }
-
-        public void SetName(string name)
-        {
-            this.Name = name;
-        }
-
-        public string GetName()
-        {
-            return this.Name;
-        }
-
-        public void SetID(uint id)
-        {
-            this.ID = id;
-        }
-
-        public uint GetID()
-        {
-            return this.ID;
-        }
+        { mListenClientPeerStateMgr.removeListenClientPeerStateFunc(mFunc); }
+        public void SetName(string name) { this.Name = name; }
+        public string GetName() { return this.Name; }
+        public void SetID(uint id) { this.ID = id; }
+        public uint GetID() { return this.ID; }
     }
 }
