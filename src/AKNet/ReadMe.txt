@@ -31,3 +31,9 @@ TODO 稳定可靠：1: 实现丢包发现重传, 2: 实现拥塞控制 。（拥
 报错:InvalidArgument
 原因: 原因是 第一次发送连接的时候,传输的字节数为0
 
+
+AI解决 Socket 栈溢出的问题:
+这是 TCP 的 SocketAsyncEventArgs 同步完成导致的问题。当本地环回（localhost）测试时，内核缓冲区足够大，Socket.SendAsync 可能同步完成（bIOSyncCompleted = true），ProcessSend 在当前线程直接被调用，然后又调回来 → 栈溢出。
+原版 TCP 也有这个问题，只是测试数据量小的时候碰不上。你改大了发送量就触发了。
+修复很简单：同步完成时不要直接回调，改成异步调度：
+
