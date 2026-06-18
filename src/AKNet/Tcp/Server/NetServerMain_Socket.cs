@@ -12,6 +12,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading.Tasks;
 
 namespace AKNet.Tcp.Server
 {
@@ -117,7 +118,7 @@ namespace AKNet.Tcp.Server
 			
 			if (bIOSyncCompleted)
 			{
-				this.ProcessAccept(mAcceptIOContex);
+				Task.Run(() => this.ProcessAccept(mAcceptIOContex));
 			}
 		}
 

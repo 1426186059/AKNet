@@ -121,7 +121,7 @@ namespace AKNet.Tcp.Client
 			
 			if (bIOSyncCompleted)
 			{
-				this.ProcessConnect(mConnectIOContex);
+				Task.Run(() => this.ProcessConnect(mConnectIOContex));
 			}
 		}
 
@@ -147,7 +147,7 @@ namespace AKNet.Tcp.Client
 			
 			if (bIOSyncCompleted)
 			{
-				this.ProcessDisconnect(mDisConnectIOContex);
+				Task.Run(() => this.ProcessDisconnect(mDisConnectIOContex));
 			}
 		}
 
@@ -175,7 +175,7 @@ namespace AKNet.Tcp.Client
 			
 			if (bIOSyncCompleted)
 			{
-				this.ProcessReceive(mReceiveIOContex);
+				Task.Run(() => this.ProcessReceive(mReceiveIOContex));
 			}
 		}
 

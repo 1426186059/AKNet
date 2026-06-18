@@ -46,7 +46,7 @@ namespace AKNet.Tcp.Server
 			
 			if (bIOSyncCompleted)
 			{
-				this.ProcessReceive(mReceiveIOContex);
+				Task.Run(() => this.ProcessReceive(mReceiveIOContex));
 			}
 
 		}
