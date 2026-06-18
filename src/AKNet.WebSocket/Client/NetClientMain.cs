@@ -35,7 +35,7 @@ namespace AKNet.WebSocket.Client
         private readonly AkCircularBuffer mSendStreamList = new AkCircularBuffer();
         private readonly NetStreamCircularBuffer mReceiveStreamList = new NetStreamCircularBuffer();
         private readonly NetStreamReceivePackage mNetPackage = new NetStreamReceivePackage();
-        private byte[] mSendBuffer = new byte[1024];
+        private byte[] mSendBuffer = new byte[CommonTcpLayerConfig.nIOContexBufferLength];
 
         private ClientWebSocket mWebSocket = null;
         private string ServerIp = "";
