@@ -6,13 +6,12 @@ namespace TestNetClient
     {
         public override NetClientMainBase Create()
         {
-            return null;
-           // return new NetClientMain(NetType.TCP);
+            return new NetClientMain(NetType.WebSocket);
         }
 
         public override void OnTestFinish()
         {
-            
+            NetLog.Log("WebSocket 测试全部完成!");
         }
     }
 
@@ -24,5 +23,4 @@ namespace TestNetClient
             mTest.Start();
         }
     }
-
 }

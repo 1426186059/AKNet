@@ -6,8 +6,7 @@ namespace TestNetServer
     {
         public override NetServerMainBase Create()
         {
-            return null;
-            //return new NetServerMain(NetType.TCP);
+            return new NetServerMain(NetType.WebSocket);
         }
     }
 
