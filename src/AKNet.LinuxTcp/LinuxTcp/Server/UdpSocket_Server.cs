@@ -137,7 +137,7 @@ namespace AKNet.LinuxTcp.Server
 			
             if (bIOSyncCompleted)
 			{
-				ProcessReceive(null, ReceiveArgs);
+				System.Threading.Tasks.Task.Run(() => ProcessReceive(null, ReceiveArgs));
 			}
 		}
 

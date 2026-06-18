@@ -117,7 +117,7 @@ namespace AKNet.LinuxTcp.Client
             
             if (bIOSyncCompleted)
             {
-                ProcessReceive(null, ReceiveArgs);
+                System.Threading.Tasks.Task.Run(() => ProcessReceive(null, ReceiveArgs));
             }
         }
 
@@ -143,7 +143,7 @@ namespace AKNet.LinuxTcp.Client
                 
             if (bIOSyncCompleted)
             {
-                ProcessSend(null, SendArgs);
+                System.Threading.Tasks.Task.Run(() => ProcessSend(null, SendArgs));
             }
         }
 

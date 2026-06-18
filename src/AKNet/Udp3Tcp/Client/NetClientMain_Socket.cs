@@ -78,7 +78,7 @@ namespace AKNet.Udp3Tcp.Client
             
             if (!bIOPending)
             {
-                ProcessReceive(null, ReceiveArgs);
+                System.Threading.Tasks.Task.Run(() => ProcessReceive(null, ReceiveArgs));
             }
         }
 
@@ -105,7 +105,7 @@ namespace AKNet.Udp3Tcp.Client
                 
             if (!bIOPending)
             {
-                ProcessSend(null, SendArgs);
+                System.Threading.Tasks.Task.Run(() => ProcessSend(null, SendArgs));
             }
         }
 
@@ -151,7 +151,7 @@ namespace AKNet.Udp3Tcp.Client
             if (!bSendIOContexUsed)
             {
                 bSendIOContexUsed = true;
-                SendNetStream2();
+                System.Threading.Tasks.Task.Run(()=> SendNetStream2());
             }
         }
         

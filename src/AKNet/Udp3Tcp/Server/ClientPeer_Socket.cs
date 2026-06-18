@@ -49,14 +49,14 @@ namespace AKNet.Udp3Tcp.Server
             return mSocket.GetReceivePackage(out mPackage);
         }
 
-        public bool SendToAsync(SocketAsyncEventArgs e)
+        public void StartSendEventArg(SocketAsyncEventArgs e)
         {
-            bool bIOSyncCompleted = false;
+            bool bIOPending = false;
             if (mSocket != null)
             {
                 try
                 {
-                    bIOSyncCompleted = !mSocket.SendToAsync(e);
+                    bIOPending = mSocket.SendToAsync(e);
                 }
                 catch (Exception ex)
                 {
@@ -67,7 +67,11 @@ namespace AKNet.Udp3Tcp.Server
                     }
                 }
             }
-            return !bIOSyncCompleted;
+            
+            if(!bIOPending)
+            {
+                System.Threading.Tasks.Task.Run(() => ProcessSend(null, e));
+            }
         }
 
         private void ProcessSend(object sender, SocketAsyncEventArgs e)
@@ -102,7 +106,7 @@ namespace AKNet.Udp3Tcp.Server
             if (!bSendIOContexUsed)
             {
                 bSendIOContexUsed = true;
-                SendNetStream2();
+                System.Threading.Tasks.Task.Run(() => SendNetStream2());
             }
         }
         
@@ -127,10 +131,7 @@ namespace AKNet.Udp3Tcp.Server
             {
                 nLastSendBytesCount = nSendBytesCount;
                 SendArgs.SetBuffer(0, nSendBytesCount);
-                if (!SendToAsync(SendArgs))
-                {
-                    ProcessSend(null, SendArgs);
-                }
+                StartSendEventArg(SendArgs);
             }
             else
             {

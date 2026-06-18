@@ -96,25 +96,25 @@ namespace AKNet.Udp3Tcp.Server
 
 		private void StartReceiveFromAsync()
 		{
-			bool bIOSyncCompleted = false;
-            if (mSocket != null)
-            {
-                try
-                {
-                    bIOSyncCompleted = !mSocket.ReceiveFromAsync(ReceiveArgs);
-                }
-                catch (Exception e)
-                {
-                    if (mSocket != null)
-                    {
-                        NetLog.LogException(e);
-                    }
-                }
-            }
-			
-            if (bIOSyncCompleted)
+			bool bIOPending = false;
+			if (mSocket != null)
 			{
-				ProcessReceive(null, ReceiveArgs);
+				try
+				{
+					bIOPending = mSocket.ReceiveFromAsync(ReceiveArgs);
+				}
+				catch (Exception e)
+				{
+					if (mSocket != null)
+					{
+						NetLog.LogException(e);
+					}
+				}
+			}
+
+			if (!bIOPending)
+			{
+				System.Threading.Tasks.Task.Run(() => ProcessReceive(null, ReceiveArgs));
 			}
 		}
 
@@ -130,24 +130,8 @@ namespace AKNet.Udp3Tcp.Server
 		}
 
 		public bool SendToAsync(SocketAsyncEventArgs e)
-		{
-			bool bIOSyncCompleted = false;
-			if (mSocket != null)
-			{
-				try
-				{
-					bIOSyncCompleted = !mSocket.SendToAsync(e);
-				}
-				catch (Exception ex)
-				{
-					if (mSocket != null)
-					{
-						NetLog.LogException(ex);
-					}
-				}
-			}
-			
-			return !bIOSyncCompleted;
+		{			
+			return mSocket.SendToAsync(e);
 		}
 
         public void CloseSocket()
