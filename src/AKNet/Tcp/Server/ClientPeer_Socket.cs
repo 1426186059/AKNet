@@ -11,6 +11,7 @@ using AKNet.Common;
 using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading.Tasks;
 
 namespace AKNet.Tcp.Server
 {
@@ -69,10 +70,10 @@ namespace AKNet.Tcp.Server
 			{
 				bSendIOContextUsed = false;
 			}
-			
+
 			if (bIOSyncCompleted)
 			{
-				this.ProcessSend(mSendIOContex);
+				Task.Run(() => this.ProcessSend(mSendIOContex));
 			}
 		}
 
@@ -131,7 +132,7 @@ namespace AKNet.Tcp.Server
 			{
 				if (e.BytesTransferred > 0)
 				{
-					SendNetStream1(e.BytesTransferred);
+                    SendLoopAsync(e.BytesTransferred);
 				}
 				else
 				{
@@ -157,8 +158,8 @@ namespace AKNet.Tcp.Server
 			if (!bSendIOContextUsed)
 			{
 				bSendIOContextUsed = true;
-				SendNetStream1();
-			}
+                Task.Run(() => SendLoopAsync(0));
+            }
 			else
 			{
                 if (!bSendIOContextUsed && mSendStreamList.Length > 0)
@@ -168,7 +169,7 @@ namespace AKNet.Tcp.Server
             }
 		}
 
-		private void SendNetStream1(int BytesTransferred = 0)
+		private void SendLoopAsync(int BytesTransferred = 0)
 		{
 			if (BytesTransferred > 0)
 			{
