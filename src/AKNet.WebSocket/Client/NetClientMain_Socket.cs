@@ -27,6 +27,7 @@ namespace AKNet.WebSocket.Client
 
         public void ConnectServer(string ServerAddr, int ServerPort)
         {
+            MainThreadCheck.Check();
             Reset();
             this.ServerIp = ServerAddr;
             this.nServerPort = ServerPort;
@@ -51,7 +52,6 @@ namespace AKNet.WebSocket.Client
                     if (ws == null) return;
 
                     await ws.ConnectAsync(uri, System.Threading.CancellationToken.None).ConfigureAwait(false);
-                    MainThreadCheck.Check();
                     NetLog.Log($"WebSocket 客户端 连接服务器: {uri} 成功");
 
                     SetSocketState(SOCKET_PEER_STATE.CONNECTED);
@@ -64,7 +64,6 @@ namespace AKNet.WebSocket.Client
                 }
                 catch (Exception e)
                 {
-                    MainThreadCheck.Check();
                     NetLog.LogError($"WebSocket 客户端 连接服务器: {uri} 失败: {e.Message}");
                     DisConnectedWithError();
                 }
