@@ -12,7 +12,6 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace AKNet.Tcp.Server
 {
@@ -36,13 +35,17 @@ namespace AKNet.Tcp.Server
 		// ---------- 接收（高频，while 循环） ----------
 		private void StartReceiveEventArg()
 		{
-			while (true)
+			while (mSocket != null && mSocketPeerState == SOCKET_PEER_STATE.CONNECTED)
 			{
 				bool bIOSyncCompleted = false;
-				if (mSocket != null)
+				try
 				{
-					try { bIOSyncCompleted = !mSocket.ReceiveAsync(mReceiveIOContex); }
-					catch (Exception e) { DisConnectedWithException(e); }
+					bIOSyncCompleted = !mSocket.ReceiveAsync(mReceiveIOContex);
+				}
+				catch (Exception e)
+				{
+					DisConnectedWithException(e);
+					break;
 				}
 
 				if (bIOSyncCompleted) ProcessReceive(mReceiveIOContex);
@@ -53,7 +56,8 @@ namespace AKNet.Tcp.Server
 		private void OnIOCompleted_Receive(object sender, SocketAsyncEventArgs e)
 		{
 			ProcessReceive(e);
-			StartReceiveEventArg();
+			if (GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
+				StartReceiveEventArg();
 		}
 
 		private void ProcessReceive(SocketAsyncEventArgs e)
@@ -69,15 +73,11 @@ namespace AKNet.Tcp.Server
 		// ---------- 发送（高频，while 循环） ----------
 		private void StartSendEventArg()
 		{
-			while (true)
+			while (mSocket != null && mSocketPeerState == SOCKET_PEER_STATE.CONNECTED)
 			{
 				bool bIOSyncCompleted = false;
-				if (mSocket != null)
-				{
-					try { bIOSyncCompleted = !mSocket.SendAsync(mSendIOContex); }
-					catch (Exception e) { bSendIOContextUsed = false; DisConnectedWithException(e); }
-				}
-				else { bSendIOContextUsed = false; }
+				try { bIOSyncCompleted = !mSocket.SendAsync(mSendIOContex); }
+				catch (Exception e) { bSendIOContextUsed = false; DisConnectedWithException(e); break; }
 
 				if (bIOSyncCompleted) { if (!ProcessSendSync(mSendIOContex)) break; }
 				else break;
@@ -108,13 +108,9 @@ namespace AKNet.Tcp.Server
 			if (!bSendIOContextUsed)
 			{
 				bSendIOContextUsed = true;
-#if NET8_0_OR_GREATER
-				ThreadPool.UnsafeQueueUserWorkItem<ValueTuple<ClientPeer, int>>(
+				ThreadPool.QueueUserWorkItem<ValueTuple<ClientPeer, int>>(
 					static state => { if (state.Item1.SendLoopChunk(state.Item2)) state.Item1.StartSendEventArg(); },
 					(this, 0), false);
-#else
-				Task.Run(() => { if (SendLoopChunk(0)) StartSendEventArg(); });
-#endif
 			}
 			else
 			{

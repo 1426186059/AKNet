@@ -12,7 +12,6 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace AKNet.Tcp.Client
 {
@@ -77,13 +76,9 @@ namespace AKNet.Tcp.Client
             if (mSocket != null) { try { bIOSyncCompleted = !mSocket.ConnectAsync(mConnectIOContex); } catch (Exception e) { bConnectIOContexUsed = false; DisConnectedWithException(e); } }
             else { bConnectIOContexUsed = false; }
             if (bIOSyncCompleted)
-#if NET8_0_OR_GREATER
-                ThreadPool.UnsafeQueueUserWorkItem<ValueTuple<NetClientMain, SocketAsyncEventArgs>>(
+                ThreadPool.QueueUserWorkItem<ValueTuple<NetClientMain, SocketAsyncEventArgs>>(
                     static state => state.Item1.ProcessConnect(state.Item2),
                     (this, mConnectIOContex), false);
-#else
-                Task.Run(() => this.ProcessConnect(mConnectIOContex));
-#endif
         }
 
         private void StartDisconnectEventArg()
@@ -92,13 +87,9 @@ namespace AKNet.Tcp.Client
             if (mSocket != null) { try { bIOSyncCompleted = !mSocket.DisconnectAsync(mDisConnectIOContex); } catch (Exception e) { bDisConnectIOContexUsed = false; DisConnectedWithException(e); } }
             else { bDisConnectIOContexUsed = false; }
             if (bIOSyncCompleted)
-#if NET8_0_OR_GREATER
-                ThreadPool.UnsafeQueueUserWorkItem<ValueTuple<NetClientMain, SocketAsyncEventArgs>>(
+                ThreadPool.QueueUserWorkItem<ValueTuple<NetClientMain, SocketAsyncEventArgs>>(
                     static state => state.Item1.ProcessDisconnect(state.Item2),
                     (this, mDisConnectIOContex), false);
-#else
-                Task.Run(() => this.ProcessDisconnect(mDisConnectIOContex));
-#endif
         }
 
         private void ProcessConnect(SocketAsyncEventArgs e)
@@ -130,7 +121,7 @@ namespace AKNet.Tcp.Client
         // ---------- 接收（高频，while 循环） ----------
         private void StartReceiveEventArg()
         {
-            while (true)
+            while (GetSocketState() == SOCKET_PEER_STATE.CONNECTED && mSocket != null)
             {
                 bool bIOPending = false;
                 if (mSocket != null)
@@ -148,7 +139,8 @@ namespace AKNet.Tcp.Client
         private void OnIOCompleted_Receive(object sender, SocketAsyncEventArgs e)
         {
             ProcessReceive(e);
-            StartReceiveEventArg();
+            if (GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
+                StartReceiveEventArg();
         }
 
         private void ProcessReceive(SocketAsyncEventArgs e)
@@ -164,7 +156,7 @@ namespace AKNet.Tcp.Client
         // ---------- 发送（高频，while 循环） ----------
         private void StartSendEventArg()
         {
-            while (true)
+            while (GetSocketState() == SOCKET_PEER_STATE.CONNECTED && mSocket != null)
             {
                 bool bIOPending = false;
                 if (mSocket != null)
@@ -200,13 +192,9 @@ namespace AKNet.Tcp.Client
             ResetSendHeartBeatTime();
             lock (mSendStreamList) { mSendStreamList.WriteFrom(mBufferSegment); }
             if (!bSendIOContextUsed) { bSendIOContextUsed = true;
-#if NET8_0_OR_GREATER
-                ThreadPool.UnsafeQueueUserWorkItem<ValueTuple<NetClientMain, int>>(
+                ThreadPool.QueueUserWorkItem<ValueTuple<NetClientMain, int>>(
                     static state => { if (state.Item1.SendLoopChunk(state.Item2)) state.Item1.StartSendEventArg(); },
                     (this, 0), false);
-#else
-                Task.Run(() => { if (SendLoopChunk(0)) StartSendEventArg(); });
-#endif
             }
         }
 
