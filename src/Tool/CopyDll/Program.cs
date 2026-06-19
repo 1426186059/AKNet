@@ -8,6 +8,8 @@ namespace CopyDll
                 "AKNet.Common",
                 "AKNet",
                 "AKNet.Extentions.Protobuf",
+                "AKNet.WebSocket",
+                "AKNet.LinuxTcp",
             };
 
         static void Main(string[] args)

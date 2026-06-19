@@ -11,6 +11,11 @@ namespace AKNet.Common
 {
     public class NetServerMain : NetServerMainBase
     {
+        static NetServerMain()
+        {
+            AKNet.WebSocket.JslibDeployer.TryDeploy();
+        }
+
         public NetServerMain(NetType nNetType)
         {
             mInterface = new AKNet.WebSocket.Server.NetServerMain();

@@ -8,4 +8,7 @@
   <ItemGroup>
     <ProjectReference Include="..\AKNet.Common\AKNet.Common.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="AKNet.WebSocket.jslib" />
+  </ItemGroup>
 </Project>
