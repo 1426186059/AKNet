@@ -20,74 +20,116 @@ namespace AKNet.Tcp.Server
 		public void HandleConnectedSocket(Socket otherSocket)
 		{
 			MainThreadCheck.Check();
-
 			this.mSocket = otherSocket;
 			SetSocketState(SOCKET_PEER_STATE.CONNECTED);
 			bSendIOContextUsed = false;
-
 			StartReceiveEventArg();
 		}
 
+		// ---------- 接收（高频，while 循环） ----------
 		private void StartReceiveEventArg()
 		{
-			bool bIOSyncCompleted = false;
-
-			if (mSocket != null)
+			while (true)
 			{
-				try
+				bool bIOSyncCompleted = false;
+				if (mSocket != null)
 				{
-					bIOSyncCompleted = !mSocket.ReceiveAsync(mReceiveIOContex);
+					try { bIOSyncCompleted = !mSocket.ReceiveAsync(mReceiveIOContex); }
+					catch (Exception e) { DisConnectedWithException(e); }
 				}
-				catch (Exception e)
-				{
-					DisConnectedWithException(e);
-				}
-			}
-			
-			if (bIOSyncCompleted)
-			{
-				Task.Run(() => this.ProcessReceive(mReceiveIOContex));
-			}
 
+				if (bIOSyncCompleted) ProcessReceive(mReceiveIOContex);
+				else break;
+			}
 		}
 
+		private void OnIOCompleted_Receive(object sender, SocketAsyncEventArgs e)
+		{
+			ProcessReceive(e);
+			StartReceiveEventArg();
+		}
+
+		private void ProcessReceive(SocketAsyncEventArgs e)
+		{
+			if (e.SocketError == SocketError.Success)
+			{
+				if (e.BytesTransferred > 0) { MultiThreadingReceiveSocketStream(e); }
+				else { DisConnectedWithNormal(); }
+			}
+			else { DisConnectedWithSocketError(e.SocketError); }
+		}
+
+		// ---------- 发送（高频，while 循环） ----------
 		private void StartSendEventArg()
 		{
-			bool bIOSyncCompleted = false;
-			if (mSocket != null)
+			while (true)
 			{
-				try
+				bool bIOSyncCompleted = false;
+				if (mSocket != null)
 				{
-					bIOSyncCompleted = !mSocket.SendAsync(mSendIOContex);
+					try { bIOSyncCompleted = !mSocket.SendAsync(mSendIOContex); }
+					catch (Exception e) { bSendIOContextUsed = false; DisConnectedWithException(e); }
 				}
-				catch (Exception e)
-				{
-					bSendIOContextUsed = false;
-					DisConnectedWithException(e);
-				}
+				else { bSendIOContextUsed = false; }
+
+				if (bIOSyncCompleted) { if (!ProcessSendSync(mSendIOContex)) break; }
+				else break;
+			}
+		}
+
+		private void OnIOCompleted_Send(object sender, SocketAsyncEventArgs e)
+		{
+			if (ProcessSendSync(e)) StartSendEventArg();
+		}
+
+		// true=还有数据要继续发
+		private bool ProcessSendSync(SocketAsyncEventArgs e)
+		{
+			if (e.SocketError == SocketError.Success)
+			{
+				if (e.BytesTransferred > 0) return SendLoopChunk(e.BytesTransferred);
+				else { DisConnectedWithNormal(); bSendIOContextUsed = false; return false; }
+			}
+			else { DisConnectedWithSocketError(e.SocketError); bSendIOContextUsed = false; return false; }
+		}
+
+		public void SendNetStream(ReadOnlySpan<byte> mBufferSegment)
+		{
+			ResetSendHeartBeatTime();
+			lock (mSendStreamList) { mSendStreamList.WriteFrom(mBufferSegment); }
+
+			if (!bSendIOContextUsed)
+			{
+				bSendIOContextUsed = true;
+				Task.Run(() => { if (SendLoopChunk(0)) StartSendEventArg(); });
 			}
 			else
 			{
-				bSendIOContextUsed = false;
+				if (!bSendIOContextUsed && mSendStreamList.Length > 0)
+					throw new Exception("SendNetStream 有数据, 但发送不了啊");
 			}
+		}
 
-			if (bIOSyncCompleted)
+		// true=还有数据要继续发（调用方需调 StartSendEventArg 继续）
+		private bool SendLoopChunk(int BytesTransferred = 0)
+		{
+			if (BytesTransferred > 0) { lock (mSendStreamList) { mSendStreamList.ClearBuffer(BytesTransferred); } }
+
+			int nLength = mSendStreamList.Length;
+			if (nLength > 0)
 			{
-				Task.Run(() => this.ProcessSend(mSendIOContex));
+				nLength = Math.Min(mSendIOContex.MemoryBuffer.Length, nLength);
+				lock (mSendStreamList) { mSendStreamList.CopyTo(mSendIOContex.MemoryBuffer.Span.Slice(0, nLength)); }
+				mSendIOContex.SetBuffer(0, nLength);
+				return true;
 			}
+			else { bSendIOContextUsed = false; return false; }
 		}
 
 		public IPEndPoint GetIPEndPoint()
 		{
 			IPEndPoint mRemoteEndPoint = null;
-			try
-			{
-				if (mSocket != null && mSocket.RemoteEndPoint != null)
-				{
-					mRemoteEndPoint = mSocket.RemoteEndPoint as IPEndPoint;
-				}
-			}
-			catch { }
+			try { if (mSocket != null && mSocket.RemoteEndPoint != null) mRemoteEndPoint = mSocket.RemoteEndPoint as IPEndPoint; } catch { }
 			return mRemoteEndPoint;
 		}
 
@@ -95,121 +137,15 @@ namespace AKNet.Tcp.Server
 		{
 			switch (e.LastOperation)
 			{
-				case SocketAsyncOperation.Receive:
-					this.ProcessReceive(e);
-					break;
-				case SocketAsyncOperation.Send:
-					this.ProcessSend(e);
-					break;
-				default:
-					throw new ArgumentException("The last operation completed on the socket was not a receive or send");
+				case SocketAsyncOperation.Receive: ProcessReceive(e); StartReceiveEventArg(); break;
+				case SocketAsyncOperation.Send: if (ProcessSendSync(e)) StartSendEventArg(); break;
+				default: throw new ArgumentException("The last operation completed on the socket was not a receive or send");
 			}
 		}
 
-		private void ProcessReceive(SocketAsyncEventArgs e)
-		{
-			if (e.SocketError == SocketError.Success)
-			{
-				if (e.BytesTransferred > 0)
-				{
-					MultiThreadingReceiveSocketStream(e);
-					StartReceiveEventArg();
-				}
-				else
-				{
-					DisConnectedWithNormal();
-				}
-			}
-			else
-			{
-				DisConnectedWithSocketError(e.SocketError);
-			}
-		}
-
-		private void ProcessSend(SocketAsyncEventArgs e)
-		{
-			if (e.SocketError == SocketError.Success)
-			{
-				if (e.BytesTransferred > 0)
-				{
-                    SendLoopAsync(e.BytesTransferred);
-				}
-				else
-				{
-					DisConnectedWithNormal();
-					bSendIOContextUsed = false;
-				}
-			}
-			else
-			{
-				DisConnectedWithSocketError(e.SocketError);
-				bSendIOContextUsed = false;
-			}
-		}
-
-		public void SendNetStream(ReadOnlySpan<byte> mBufferSegment)
-		{
-            ResetSendHeartBeatTime();
-            lock (mSendStreamList)
-			{
-				mSendStreamList.WriteFrom(mBufferSegment);
-			}
-
-			if (!bSendIOContextUsed)
-			{
-				bSendIOContextUsed = true;
-                Task.Run(() => SendLoopAsync(0));
-            }
-			else
-			{
-                if (!bSendIOContextUsed && mSendStreamList.Length > 0)
-                {
-                    throw new Exception("SendNetStream 有数据, 但发送不了啊");
-                }
-            }
-		}
-
-		private void SendLoopAsync(int BytesTransferred = 0)
-		{
-			if (BytesTransferred > 0)
-			{
-				lock (mSendStreamList)
-				{
-					mSendStreamList.ClearBuffer(BytesTransferred);
-				}
-			}
-
-			int nLength = mSendStreamList.Length;
-			if (nLength > 0)
-			{
-				nLength = Math.Min(mSendIOContex.MemoryBuffer.Length, nLength);
-				lock (mSendStreamList)
-				{
-					mSendStreamList.CopyTo(mSendIOContex.MemoryBuffer.Span.Slice(0, nLength));
-				}
-				mSendIOContex.SetBuffer(0, nLength);
-                StartSendEventArg();
-			}
-			else
-			{
-				bSendIOContextUsed = false;
-			}
-		}
-
-		private void DisConnectedWithNormal()
-		{
-			SetSocketState(SOCKET_PEER_STATE.DISCONNECTED);
-		}
-
-		private void DisConnectedWithException(Exception e)
-		{
-			SetSocketState(SOCKET_PEER_STATE.DISCONNECTED);
-		}
-
-		private void DisConnectedWithSocketError(SocketError mError)
-		{
-			SetSocketState(SOCKET_PEER_STATE.DISCONNECTED);
-		}
+		private void DisConnectedWithNormal() { SetSocketState(SOCKET_PEER_STATE.DISCONNECTED); }
+		private void DisConnectedWithException(Exception e) { SetSocketState(SOCKET_PEER_STATE.DISCONNECTED); }
+		private void DisConnectedWithSocketError(SocketError mError) { SetSocketState(SOCKET_PEER_STATE.DISCONNECTED); }
 
 		void CloseSocket()
 		{
@@ -217,19 +153,9 @@ namespace AKNet.Tcp.Server
 			{
 				Socket mSocket2 = mSocket;
 				mSocket = null;
-
-				try
-				{
-					mSocket2.Shutdown(SocketShutdown.Both);
-				}
-				catch { }
-				finally
-				{
-					mSocket2.Close();
-				}
+				try { mSocket2.Shutdown(SocketShutdown.Both); } catch { }
+				finally { mSocket2.Close(); }
 			}
 		}
-
 	}
-
 }
