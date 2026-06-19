@@ -121,15 +121,12 @@ namespace AKNet.Tcp.Client
         // ---------- 接收（高频，while 循环） ----------
         private void StartReceiveEventArg()
         {
-            while (GetSocketState() == SOCKET_PEER_STATE.CONNECTED && mSocket != null)
+            while (mSocketPeerState == SOCKET_PEER_STATE.CONNECTED && mSocket != null)
             {
                 bool bIOPending = false;
-                if (mSocket != null)
-                {
-                    try { bIOPending = mSocket.ReceiveAsync(mReceiveIOContex); }
-                    catch (Exception e) { bReceiveIOContextUsed = false; DisConnectedWithException(e); }
-                }
-                else { bReceiveIOContextUsed = false; }
+
+                try { bIOPending = mSocket.ReceiveAsync(mReceiveIOContex); }
+                catch (Exception e) { bReceiveIOContextUsed = false; DisConnectedWithException(e); }
 
                 if (!bIOPending) ProcessReceive(mReceiveIOContex);
                 else break;
@@ -156,15 +153,11 @@ namespace AKNet.Tcp.Client
         // ---------- 发送（高频，while 循环） ----------
         private void StartSendEventArg()
         {
-            while (GetSocketState() == SOCKET_PEER_STATE.CONNECTED && mSocket != null)
+            while (mSocketPeerState == SOCKET_PEER_STATE.CONNECTED && mSocket != null)
             {
                 bool bIOPending = false;
-                if (mSocket != null)
-                {
-                    try { bIOPending = mSocket.SendAsync(mSendIOContex); }
-                    catch (Exception e) { bSendIOContextUsed = false; DisConnectedWithException(e); }
-                }
-                else { bSendIOContextUsed = false; }
+                try { bIOPending = mSocket.SendAsync(mSendIOContex); }
+                catch (Exception e) { bSendIOContextUsed = false; DisConnectedWithException(e); }
 
                 if (!bIOPending) { if (!ProcessSendSync(mSendIOContex)) break; }
                 else break;
@@ -264,7 +257,7 @@ namespace AKNet.Tcp.Client
             {
                 Socket mSocket2 = mSocket;
                 mSocket = null;
-                try { mSocket2.Close(); } catch { }
+                System.Threading.ThreadPool.UnsafeQueueUserWorkItem(static s => { try { ((Socket)s).Close(); } catch { } }, mSocket2);
             }
         }
 
