@@ -166,7 +166,7 @@ namespace AKNet.Tcp.Server
 			{
 				Socket mSocket2 = mSocket;
 				mSocket = null;
-				try { mSocket2.Close(); } catch { }
+				System.Threading.ThreadPool.UnsafeQueueUserWorkItem(static s => { try { ((Socket)s).Close(); } catch { } }, mSocket2);
 			}
 		}
 	}
