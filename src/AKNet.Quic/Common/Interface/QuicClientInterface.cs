@@ -39,5 +39,7 @@ namespace AKNet.Common
         string GetName();
         void SetID(uint id);
         uint GetID();
+        void SetOwner(object owner);
+        object GetOwner();
     }
 }

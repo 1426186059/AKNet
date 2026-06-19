@@ -24,6 +24,7 @@ namespace AKNet.Tcp.Server
 		private NetServerMain mServerMgr;
 		private string Name = string.Empty;
         private uint ID = 0;
+        private object Owner = null;
 
         private readonly NetStreamCircularBuffer mReceiveStreamList = new NetStreamCircularBuffer();
         private readonly AkCircularBuffer mSendStreamList = new AkCircularBuffer();
@@ -186,5 +187,9 @@ namespace AKNet.Tcp.Server
         {
             return this.ID;
         }
+        public void SetOwner(object owner) { this.Owner = owner; }
+        public object GetOwner() { return this.Owner; }
+        public void SendNetData(byte[] data) { SendNetData(0, data); }
+        public void SendNetData(ReadOnlySpan<byte> data) { SendNetData(0, data); }
     }
 }

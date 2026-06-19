@@ -53,5 +53,25 @@ namespace AKNet.WebSocket.Client
             }
             else { NetLog.LogError("SendNetData Failed: " + GetSocketState()); }
         }
+
+        public void SendNetData(byte[] data)
+        {
+            if (this.mSocketPeerState == SOCKET_PEER_STATE.CONNECTED)
+            {
+                ReadOnlySpan<byte> mBufferSegment = mCryptoMgr.Encode(0, data);
+                SendNetStream(mBufferSegment);
+            }
+            else { NetLog.LogError("SendNetData Failed: " + GetSocketState()); }
+        }
+
+        public void SendNetData(ReadOnlySpan<byte> data)
+        {
+            if (this.mSocketPeerState == SOCKET_PEER_STATE.CONNECTED)
+            {
+                ReadOnlySpan<byte> mBufferSegment = mCryptoMgr.Encode(0, data);
+                SendNetStream(mBufferSegment);
+            }
+            else { NetLog.LogError("SendNetData Failed: " + GetSocketState()); }
+        }
     }
 }

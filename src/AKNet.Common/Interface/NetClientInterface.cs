@@ -34,9 +34,13 @@ namespace AKNet.Common
         void SendNetData(ushort nPackageId, byte[] data);
         void SendNetData(ushort nPackageId, ReadOnlySpan<byte> buffer);
         void SendNetData(NetPackage mNetPackage);
+        void SendNetData(byte[] data);
+        void SendNetData(ReadOnlySpan<byte> data);
         void SetName(string name);
         string GetName();
         void SetID(uint id);
         uint GetID();
+        void SetOwner(object owner);
+        object GetOwner();
     }
 }

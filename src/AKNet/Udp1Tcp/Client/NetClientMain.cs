@@ -31,6 +31,7 @@ namespace AKNet.Udp1Tcp.Client
         private SOCKET_PEER_STATE mLastSocketPeerState;
         private string Name = string.Empty;
         private uint ID = 0;
+        private object Owner = null;
 
         private double fReceiveHeartBeatTime = 0.0;
         private double fMySendHeartBeatCdTime = 0.0;
@@ -361,5 +362,9 @@ namespace AKNet.Udp1Tcp.Client
         {
             return this.ID;
         }
+        public void SetOwner(object owner) { this.Owner = owner; }
+        public object GetOwner() { return this.Owner; }
+        public void SendNetData(byte[] data) { SendNetData(0, data); }
+        public void SendNetData(ReadOnlySpan<byte> data) { SendNetData(0, data); }
     }
 }

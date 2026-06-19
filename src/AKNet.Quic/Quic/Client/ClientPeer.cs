@@ -36,6 +36,7 @@ namespace AKNet.Quic.Client
         private SOCKET_PEER_STATE mLastSocketPeerState;
         private string Name = string.Empty;
         private uint ID = 0;
+        private object Owner = null;
 
         private string ServerIp = "";
         private int nServerPort = 0;
@@ -220,6 +221,8 @@ namespace AKNet.Quic.Client
         {
             return this.ID;
         }
+        public void SetOwner(object owner) { this.Owner = owner; }
+        public object GetOwner() { return this.Owner; }
     }
 }
 

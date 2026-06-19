@@ -74,8 +74,8 @@ namespace AKNet.Quic.Server
 
 			if (connection != null)
 			{
-				var clientPeer = new ClientPeer(this);
-				clientPeer.HandleConnectedSocket(connection);
+				var clientPeer = new ClientPeerWrap(this);
+				clientPeer.mInstance.HandleConnectedSocket(connection);
 				mClientList.Add(clientPeer);
                 PrintAddClientMsg(clientPeer);
 				return true;
@@ -83,7 +83,7 @@ namespace AKNet.Quic.Server
 			return false;
 		}
 
-        private void PrintAddClientMsg(ClientPeer clientPeer)
+        private void PrintAddClientMsg(ClientPeerWrap clientPeer)
 		{
 #if DEBUG
             var mRemoteEndPoint = clientPeer.GetIPEndPoint();
@@ -98,7 +98,7 @@ namespace AKNet.Quic.Server
 #endif
         }
 
-        private void PrintRemoveClientMsg(ClientPeer clientPeer)
+        private void PrintRemoveClientMsg(ClientPeerWrap clientPeer)
 		{
 #if DEBUG
 			var mRemoteEndPoint = clientPeer.GetIPEndPoint();

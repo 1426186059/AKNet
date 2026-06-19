@@ -21,8 +21,10 @@ namespace AKNet.WebSocket.Server
         private double fReceiveHeartBeatTime = 0.0;
 
         private NetServerMain mServerMgr;
-        private string Name = string.Empty;
-        private uint ID = 0;
+        private string mName = string.Empty;
+        private uint mID = 0;
+        private object mOwner = null;
+
 
         private readonly AkCircularBuffer mSendStreamList = new AkCircularBuffer();
         private readonly NetStreamCircularBuffer mReceiveStreamList = new NetStreamCircularBuffer();
@@ -110,8 +112,9 @@ namespace AKNet.WebSocket.Server
 
             fSendHeartBeatTime = 0.0;
             fReceiveHeartBeatTime = 0.0;
-            this.Name = string.Empty;
-            this.ID = 0;
+            this.mName = string.Empty;
+            this.mID = 0;
+            this.mOwner = null;
         }
 
         public void Release()
@@ -122,9 +125,11 @@ namespace AKNet.WebSocket.Server
             lock (mSendStreamList) { mSendStreamList.Dispose(); }
         }
 
-        public void SetName(string name) { this.Name = name; }
-        public string GetName() { return this.Name; }
-        public void SetID(uint id) { this.ID = id; }
-        public uint GetID() { return this.ID; }
+        public void SetName(string name) { this.mName = name; }
+        public string GetName() { return this.mName; }
+        public void SetID(uint id) { this.mID = id; }
+        public uint GetID() { return this.mID; }
+        public void SetOwner(object owner) { this.mOwner = owner; }
+        public object GetOwner() { return this.mOwner; }
     }
 }

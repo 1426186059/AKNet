@@ -103,24 +103,21 @@ namespace AKNet.WebSocket.Server
             return null;
         }
 
-        public void SetName(string name)
+        public void SetName(string name) { if (mInstance != null) mInstance.SetName(name); }
+        public string GetName() { return mInstance != null ? mInstance.GetName() : string.Empty; }
+        public void SetID(uint id) { if (mInstance != null) mInstance.SetID(id); }
+        public uint GetID() { return mInstance != null ? mInstance.GetID() : 0; }
+        public void SetOwner(object owner) { if (mInstance != null) mInstance.SetOwner(owner); }
+        public object GetOwner() { return mInstance != null ? mInstance.GetOwner() : null; }
+
+        public void SendNetData(byte[] data)
         {
-            mInstance.SetName(name);
+            if (mInstance != null) mInstance.SendNetData(data);
         }
 
-        public string GetName()
+        public void SendNetData(ReadOnlySpan<byte> data)
         {
-            return mInstance.GetName();
-        }
-
-        public void SetID(uint id)
-        {
-            mInstance.SetID(id);
-        }
-
-        public uint GetID()
-        {
-            return mInstance.GetID();
+            if (mInstance != null) mInstance.SendNetData(data);
         }
     }
 }

@@ -49,5 +49,23 @@ namespace AKNet.WebSocket.Server
                 SendNetStream(mBufferSegment);
             }
         }
+
+        public void SendNetData(byte[] data)
+        {
+            if (GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
+            {
+                ReadOnlySpan<byte> mBufferSegment = mServerMgr.mCryptoMgr.Encode(0, data);
+                SendNetStream(mBufferSegment);
+            }
+        }
+
+        public void SendNetData(ReadOnlySpan<byte> data)
+        {
+            if (GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
+            {
+                ReadOnlySpan<byte> mBufferSegment = mServerMgr.mCryptoMgr.Encode(0, data);
+                SendNetStream(mBufferSegment);
+            }
+        }
     }
 }

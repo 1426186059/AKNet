@@ -137,7 +137,10 @@ namespace AKNet.LinuxTcp.Client
         {
             return mNetClientPeer.GetID();
         }
-
+        public void SetOwner(object owner) { mNetClientPeer.SetOwner(owner); }
+        public object GetOwner() { return mNetClientPeer.GetOwner(); }
+        public void SendNetData(byte[] data) { mNetClientPeer.SendNetData(data); }
+        public void SendNetData(ReadOnlySpan<byte> data) { mNetClientPeer.SendNetData(data); }
     }
 }
 

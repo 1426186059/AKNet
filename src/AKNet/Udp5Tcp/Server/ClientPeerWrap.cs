@@ -143,6 +143,10 @@ namespace AKNet.Udp5Tcp.Server
             }
             return 0;
         }
+        public void SetOwner(object owner) { if (mInstance != null) mInstance.SetOwner(owner); }
+        public object GetOwner() { return mInstance != null ? mInstance.GetOwner() : null; }
+        public void SendNetData(byte[] data) { if (mInstance != null) mInstance.SendNetData(data); }
+        public void SendNetData(ReadOnlySpan<byte> data) { if (mInstance != null) mInstance.SendNetData(data); }
     }
 
 }

@@ -1,0 +1,75 @@
+/************************************Copyright*****************************************
+*        ProjectName:AKNet
+*        Web:https://github.com/825126369/AKNet
+*        Description:C#游戏网络库
+*        Author:AKNet
+*        StartTime:2024/11/01 00:00:00
+*        ModifyTime:2026/2/1 20:26:47
+*        Copyright:MIT软件许可证
+************************************Copyright*****************************************/
+using AKNet.Common;
+using System.Collections.Generic;
+
+namespace AKNet.Quic.Server
+{
+    internal class ClientPeerPool
+    {
+        private readonly Stack<ClientPeer> mObjectPool = new Stack<ClientPeer>();
+        private ServerMgr mServerMgr = null;
+        private int nMaxCapacity = 0;
+        private ClientPeer GenerateObject()
+        {
+            return new ClientPeer(this.mServerMgr);
+        }
+
+        public ClientPeerPool(ServerMgr mServerMgr, int initCapacity = 0, int nMaxCapacity = 0)
+        {
+            this.mServerMgr = mServerMgr;
+            SetMaxCapacity(nMaxCapacity);
+            for (int i = 0; i < initCapacity; i++)
+            {
+                mObjectPool.Push(GenerateObject());
+            }
+        }
+
+        public void SetMaxCapacity(int nCapacity)
+        {
+            this.nMaxCapacity = nCapacity;
+        }
+
+        public int Count()
+        {
+            return mObjectPool.Count;
+        }
+
+        public ClientPeer Pop()
+        {
+            MainThreadCheck.Check();
+
+            ClientPeer t = null;
+            if (!mObjectPool.TryPop(out t))
+            {
+                t = GenerateObject();
+            }
+            return t;
+        }
+
+        public void recycle(ClientPeer t)
+        {
+            MainThreadCheck.Check();
+#if DEBUG
+            NetLog.Assert(!mObjectPool.Contains(t));
+#endif
+            t.Reset();
+            bool bRecycle = nMaxCapacity <= 0 || mObjectPool.Count < nMaxCapacity;
+            if (bRecycle)
+            {
+                mObjectPool.Push(t);
+            }
+            else
+            {
+                t.Release();
+            }
+        }
+    }
+}

@@ -16,14 +16,18 @@ namespace AKNet.Common
     {
         IPEndPoint GetIPEndPoint();
         SOCKET_PEER_STATE GetSocketState();
-        void SetName(string name);
-        string GetName();
-        void SetID(uint id);
-        uint GetID();
-
         void SendNetData(byte nStreamIndex, ushort nPackageId);
         void SendNetData(byte nStreamIndex, ushort nPackageId, byte[] data);
         void SendNetData(byte nStreamIndex, ushort nPackageId, ReadOnlySpan<byte> buffer);
         void SendNetData(byte nStreamIndex, NetPackage mNetPackage);
+        void SendNetData(byte nStreamIndex, byte[] data);
+        void SendNetData(byte nStreamIndex, ReadOnlySpan<byte> data);
+
+        void SetName(string name);
+        string GetName();
+        void SetID(uint id);
+        uint GetID();
+        void SetOwner(object owner);
+        object GetOwner();
     }
 }

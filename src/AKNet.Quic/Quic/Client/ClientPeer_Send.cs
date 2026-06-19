@@ -63,5 +63,8 @@ namespace AKNet.Quic.Client
                 NetLog.LogError("SendNetData Failed: " + GetSocketState());
             }
         }
+
+        public void SendNetData(byte nStreamIndex, byte[] data) { SendNetData(nStreamIndex, 0, data); }
+        public void SendNetData(byte nStreamIndex, ReadOnlySpan<byte> data) { SendNetData(nStreamIndex, 0, data); }
     }
 }

@@ -138,5 +138,11 @@ namespace AKNet.Common
         {
             return mInterface.GetID();
         }
+
+        public void SetOwner(object owner) { mInterface.SetOwner(owner); }
+        public object GetOwner() { return mInterface.GetOwner(); }
+
+        public void SendNetData(byte nStreamIndex, byte[] data) { mInterface.SendNetData(nStreamIndex, 0, data); }
+        public void SendNetData(byte nStreamIndex, ReadOnlySpan<byte> data) { mInterface.SendNetData(nStreamIndex, 0, data); }
     }
 }

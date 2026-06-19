@@ -25,6 +25,7 @@ namespace AKNet.Udp1Tcp.Server
         private NetServerMain mServerMgr;
         private string Name = string.Empty;
         private uint ID = 0;
+        private object Owner = null;
         internal readonly TcpStanardRTOFunc mTcpStanardRTOFunc = new TcpStanardRTOFunc();
 
         private double fReceiveHeartBeatTime = 0.0;
@@ -275,6 +276,11 @@ namespace AKNet.Udp1Tcp.Server
         {
             return this.ID;
         }
+
+        public void SetOwner(object owner) { this.Owner = owner; }
+        public object GetOwner() { return this.Owner; }
+        public void SendNetData(byte[] data) { SendNetData(0, data); }
+        public void SendNetData(ReadOnlySpan<byte> data) { SendNetData(0, data); }
 
         public ObjectPoolManager GetObjectPoolManager()
         {

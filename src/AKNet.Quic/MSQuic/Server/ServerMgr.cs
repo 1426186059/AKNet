@@ -21,7 +21,8 @@ namespace AKNet.MSQuic.Server
         internal event Action<QuicClientPeerBase> mListenSocketStateFunc = null;
         internal readonly QuicStreamEncryption mCryptoMgr = new QuicStreamEncryption();
 
-        private readonly List<ClientPeer> mClientList = new List<ClientPeer>(0);
+        internal ClientPeerPool mClientPeerPool = null;
+        private readonly List<ClientPeerWrap> mClientList = new List<ClientPeerWrap>(0);
         private readonly Queue<QuicConnection> mConnectSocketQueue = new Queue<QuicConnection>();
 
         QuicListener mQuicListener = null;
@@ -33,6 +34,7 @@ namespace AKNet.MSQuic.Server
             NetLog.Init();
             mListenClientPeerStateMgr = new QuicListenClientPeerStateMgr();
             mPackageManager = new QuicListenNetPackageMgr();
+            mClientPeerPool = new ClientPeerPool(this, 0, 0);
         }
 
         public void Release()

@@ -26,6 +26,7 @@ namespace AKNet.Quic.Server
 		private readonly ServerMgr mServerMgr;
 		private string Name = string.Empty;
         private uint ID = 0;
+        private object Owner = null;
         
         internal QuicConnection mQuicConnection;
         private readonly Dictionary<byte, ClientPeerQuicStream> mSendStreamEnumDic = new Dictionary<byte, ClientPeerQuicStream>();
@@ -177,5 +178,7 @@ namespace AKNet.Quic.Server
             return this.ID;
         }
 
+        public void SetOwner(object owner) { this.Owner = owner; }
+        public object GetOwner() { return this.Owner; }
     }
 }
