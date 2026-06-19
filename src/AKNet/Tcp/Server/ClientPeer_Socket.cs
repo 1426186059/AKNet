@@ -11,6 +11,7 @@ using AKNet.Common;
 using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace AKNet.Tcp.Server
@@ -20,6 +21,12 @@ namespace AKNet.Tcp.Server
 		public void HandleConnectedSocket(Socket otherSocket)
 		{
 			MainThreadCheck.Check();
+			if (bStreamsDirty)
+			{
+				lock (mReceiveStreamList) { mReceiveStreamList.Reset(); }
+				lock (mSendStreamList) { mSendStreamList.Reset(); }
+				bStreamsDirty = false;
+			}
 			this.mSocket = otherSocket;
 			SetSocketState(SOCKET_PEER_STATE.CONNECTED);
 			bSendIOContextUsed = false;
@@ -101,7 +108,13 @@ namespace AKNet.Tcp.Server
 			if (!bSendIOContextUsed)
 			{
 				bSendIOContextUsed = true;
+#if NET8_0_OR_GREATER
+				ThreadPool.UnsafeQueueUserWorkItem<ValueTuple<ClientPeer, int>>(
+					static state => { if (state.Item1.SendLoopChunk(state.Item2)) state.Item1.StartSendEventArg(); },
+					(this, 0), false);
+#else
 				Task.Run(() => { if (SendLoopChunk(0)) StartSendEventArg(); });
+#endif
 			}
 			else
 			{
@@ -153,8 +166,7 @@ namespace AKNet.Tcp.Server
 			{
 				Socket mSocket2 = mSocket;
 				mSocket = null;
-				try { mSocket2.Shutdown(SocketShutdown.Both); } catch { }
-				finally { mSocket2.Close(); }
+				try { mSocket2.Close(); } catch { }
 			}
 		}
 	}

@@ -12,6 +12,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace AKNet.Tcp.Server
@@ -116,10 +117,16 @@ namespace AKNet.Tcp.Server
 				}
 			}
 			
-			if (bIOSyncCompleted)
-			{
-				Task.Run(() => this.ProcessAccept(mAcceptIOContex));
-			}
+		if (bIOSyncCompleted)
+		{
+#if NET8_0_OR_GREATER
+			ThreadPool.UnsafeQueueUserWorkItem<ValueTuple<NetServerMain, SocketAsyncEventArgs>>(
+				static state => state.Item1.ProcessAccept(state.Item2),
+				(this, mAcceptIOContex), false);
+#else
+			Task.Run(() => this.ProcessAccept(mAcceptIOContex));
+#endif
+		}
 		}
 
 		private void OnIOCompleted(object sender, SocketAsyncEventArgs e)

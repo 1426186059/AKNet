@@ -31,6 +31,7 @@ namespace AKNet.Tcp.Server
         private readonly SocketAsyncEventArgs mSendIOContex = new SocketAsyncEventArgs();
         private Socket mSocket = null;
         private bool bSendIOContextUsed = false;
+        private bool bStreamsDirty = false;
 
         public ClientPeer(NetServerMain mServerMgr)
 		{
@@ -139,15 +140,7 @@ namespace AKNet.Tcp.Server
             ResetSocketState();
 
             CloseSocket();
-            lock (mReceiveStreamList)
-            {
-                mReceiveStreamList.Reset();
-            }
-            
-            lock (mSendStreamList)
-            {
-                mSendStreamList.Reset();
-            }
+            bStreamsDirty = true;
 
             bSendIOContextUsed = false;
             fSendHeartBeatTime = 0.0;

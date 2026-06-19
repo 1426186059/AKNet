@@ -44,6 +44,7 @@ namespace AKNet.Tcp.Client
         private bool bDisConnectIOContexUsed = false;
         private bool bSendIOContextUsed = false;
         private bool bReceiveIOContextUsed = false;
+        private bool bStreamsDirty = false;
         private readonly SocketAsyncEventArgs mConnectIOContex = new SocketAsyncEventArgs();
         private readonly SocketAsyncEventArgs mDisConnectIOContex = new SocketAsyncEventArgs();
         private readonly SocketAsyncEventArgs mSendIOContex = new SocketAsyncEventArgs();
@@ -175,16 +176,7 @@ namespace AKNet.Tcp.Client
         {
             SetSocketState(SOCKET_PEER_STATE.DISCONNECTED);
             CloseSocket();
-
-            lock (mSendStreamList)
-            {
-                mSendStreamList.Reset();
-            }
-
-            lock (mReceiveStreamList)
-            {
-                mReceiveStreamList.Reset();
-            }
+            bStreamsDirty = true;
 
             fReConnectServerCdTime = 0.0f;
             fSendHeartBeatTime = 0.0;
