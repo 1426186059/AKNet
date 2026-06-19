@@ -44,6 +44,16 @@ namespace AKNet.Udp5Tcp.Server
                 SendNetStream(mData);
             }
         }
+
+        public void SendNetData(byte[] data)
+        {
+            SendNetData(0, data);
+        }
+
+        public void SendNetData(ReadOnlySpan<byte> data)
+        {
+            SendNetData(0, data);
+        }
     }
 
 }

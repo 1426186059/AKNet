@@ -56,5 +56,15 @@ namespace AKNet.Udp2Tcp.Client
                 mUdpCheckPool.SendTcpStream(mData);
             }
         }
+
+        public void SendNetData(byte[] data)
+        {
+            SendNetData(0, data);
+        }
+
+        public void SendNetData(ReadOnlySpan<byte> data)
+        {
+            SendNetData(0, data);
+        }
     }
 }

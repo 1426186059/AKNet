@@ -54,6 +54,16 @@ namespace AKNet.Udp1Tcp.Server
                 mUdpCheckPool.SendLogicPackage(id, data);
             }
         }
+
+        public void SendNetData(byte[] data)
+        {
+            SendNetData(0, data);
+        }
+
+        public void SendNetData(ReadOnlySpan<byte> data)
+        {
+            SendNetData(0, data);
+        }
     }
 
 }

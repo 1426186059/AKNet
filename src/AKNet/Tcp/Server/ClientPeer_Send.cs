@@ -49,5 +49,15 @@ namespace AKNet.Tcp.Server
                 SendNetStream(mBufferSegment);
             }
         }
+
+        public void SendNetData(byte[] data)
+        {
+            SendNetData(0, data);
+        }
+
+        public void SendNetData(ReadOnlySpan<byte> data)
+        {
+            SendNetData(0, data);
+        }
     }
 }
