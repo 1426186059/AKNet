@@ -184,16 +184,11 @@ namespace AKNet.Tcp.Server
 			{
 				Socket mSocket = mListenSocket;
 				mListenSocket = null;
-
 				try
 				{
 					mSocket.Close();
 				}
 				catch { }
-				finally
-				{
-					mSocket.Close();
-				}
 			}
 
 		}
