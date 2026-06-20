@@ -102,5 +102,7 @@ namespace AKNet.Common
         {
             mInterface.Update(elapsed);
         }
+
+        public void Update() { mInterface.Update(); }
     }
 }

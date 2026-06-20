@@ -52,6 +52,7 @@ namespace AKNet.Common
         public void SendNetData(ushort nPackageId, ReadOnlySpan<byte> buffer) { mInterface.SendNetData(nPackageId, buffer); }
 
         public void Update(double elapsed) { mInterface.Update(elapsed); }
+        public void Update(){ mInterface.Update();}
 
         public void SetName(string name) { mInterface.SetName(name); }
         public string GetName() { return mInterface.GetName(); }
