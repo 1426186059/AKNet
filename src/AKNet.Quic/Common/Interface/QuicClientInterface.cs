@@ -16,6 +16,7 @@ namespace AKNet.Common
         bool DisConnectServer();
         void ReConnectServer();
         void Update(double elapsed);
+        void Update();
         void Release();
         
         void addNetListenFunc(ushort nPackageId, Action<QuicClientPeerBase, QuicNetPackage> mFunc);

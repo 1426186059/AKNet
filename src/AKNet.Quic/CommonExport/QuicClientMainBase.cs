@@ -119,6 +119,8 @@ namespace AKNet.Common
             mInterface.Update(elapsed);
         }
 
+        public void Update() { mInterface.Update(); }
+
         public void SetName(string name)
         {
             mInterface.SetName(name);

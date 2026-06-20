@@ -127,6 +127,18 @@ namespace AKNet.Quic.Client
             }
         }
 
+        FrameUpdateFunc mFrameUpdateFunc = null;
+        public void Update()
+        {
+            if (mFrameUpdateFunc == null)
+            {
+                mFrameUpdateFunc = new FrameUpdateFunc();
+            }
+            mFrameUpdateFunc.Update(Update);
+        }
+
+
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void SendHeartBeat()
         {

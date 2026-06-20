@@ -17,6 +17,7 @@ namespace AKNet.Common
         int GetPort();
         SOCKET_SERVER_STATE GetServerState();
         void Update(double elapsed);
+        void Update();
         void Release();
         
         void addNetListenFunc(ushort id, Action<QuicClientPeerBase, QuicNetPackage> mFunc);

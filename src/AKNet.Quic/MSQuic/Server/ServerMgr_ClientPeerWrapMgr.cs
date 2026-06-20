@@ -43,7 +43,17 @@ namespace AKNet.MSQuic.Server
 			}
 		}
 
-		public bool MultiThreadingHandleConnectedSocket(QuicConnection connection)
+        FrameUpdateFunc mFrameUpdateFunc = null;
+        public void Update()
+        {
+            if (mFrameUpdateFunc == null)
+            {
+                mFrameUpdateFunc = new FrameUpdateFunc();
+            }
+            mFrameUpdateFunc.Update(Update);
+        }
+
+        public bool MultiThreadingHandleConnectedSocket(QuicConnection connection)
 		{
 			int nNowConnectCount = mClientList.Count + mConnectSocketQueue.Count;
 			if (nNowConnectCount >= Config.MaxPlayerCount)

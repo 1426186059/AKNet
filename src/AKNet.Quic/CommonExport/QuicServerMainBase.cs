@@ -79,6 +79,8 @@ namespace AKNet.Common
             mInterface.Update(elapsed);
         }
 
+        public void Update() { mInterface.Update(); }
+
         public void addNetListenFunc(ushort id, Action<QuicClientPeerBase, QuicNetPackage> mFunc)
         {
             mInterface.addNetListenFunc(id, mFunc);
