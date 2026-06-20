@@ -87,6 +87,16 @@ namespace AKNet.Udp2Tcp.Server
             }
         }
 
+        FrameUpdateFunc mFrameUpdateFunc = null;
+        public void Update()
+        {
+            if (mFrameUpdateFunc == null)
+            {
+                mFrameUpdateFunc = new FrameUpdateFunc();
+            }
+            mFrameUpdateFunc.Update(Update);
+        }
+
         public NetStreamReceivePackage GetLikeTcpNetPackage()
         {
             return mLikeTcpNetPackage;

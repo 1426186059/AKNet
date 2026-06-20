@@ -123,6 +123,16 @@ namespace AKNet.Udp5Tcp.Client
             }
         }
 
+        FrameUpdateFunc mFrameUpdateFunc = null;
+        public void Update()
+        {
+            if (mFrameUpdateFunc == null)
+            {
+                mFrameUpdateFunc = new FrameUpdateFunc();
+            }
+            mFrameUpdateFunc.Update(Update);
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void SendHeartBeat()
         {
@@ -252,7 +262,5 @@ namespace AKNet.Udp5Tcp.Client
         }
         public void SetOwner(object owner) { this.Owner = owner; }
         public object GetOwner() { return this.Owner; }
-        public void SendNetData(byte[] data) { SendNetData(0, data); }
-        public void SendNetData(ReadOnlySpan<byte> data) { SendNetData(0, data); }
     }
 }

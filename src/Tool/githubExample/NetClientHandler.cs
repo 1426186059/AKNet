@@ -29,9 +29,9 @@ namespace githubExample
             }
         }
 
-        public void Update(double fElapsedTime)
+        public void Update()
         {
-            mNetClient.Update(fElapsedTime);
+            mNetClient.Update();
         }
 
         void ReceiveMessage(ClientPeerBase peer, NetPackage mPackage)

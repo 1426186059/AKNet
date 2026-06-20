@@ -42,6 +42,16 @@ namespace AKNet.Udp3Tcp.Server
             }
         }
 
+        FrameUpdateFunc mFrameUpdateFunc = null;
+        public void Update()
+        {
+            if (mFrameUpdateFunc == null)
+            {
+                mFrameUpdateFunc = new FrameUpdateFunc();
+            }
+            mFrameUpdateFunc.Update(Update);
+        }
+
         public void MultiThreadingHandleConnectedSocket(FakeSocket mSocket)
         {
             lock (mConnectSocketQueue)

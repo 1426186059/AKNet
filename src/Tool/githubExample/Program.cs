@@ -14,8 +14,8 @@ namespace githubExample
 
             while (true)
             {
-                mServer.Update(0.001);
-                mClient.Update(0.001);
+                mServer.Update();
+                mClient.Update();
                 Thread.Sleep(1);
             }
         }

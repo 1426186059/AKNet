@@ -78,6 +78,16 @@ namespace AKNet.LinuxTcp.Client
             mNetClientPeer.Update(elapsed);
         }
 
+        FrameUpdateFunc mFrameUpdateFunc = null;
+        public void Update()
+        {
+            if (mFrameUpdateFunc == null)
+            {
+                mFrameUpdateFunc = new FrameUpdateFunc();
+            }
+            mFrameUpdateFunc.Update(Update);
+        }
+
         public void addNetListenFunc(ushort nPackageId, Action<ClientPeerBase, NetPackage> mFunc)
         {
             mNetClientPeer.addNetListenFunc(nPackageId, mFunc);

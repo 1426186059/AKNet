@@ -160,6 +160,16 @@ namespace AKNet.Udp3Tcp.Client
             }
         }
 
+        FrameUpdateFunc mFrameUpdateFunc = null;
+        public void Update()
+        {
+            if (mFrameUpdateFunc == null)
+            {
+                mFrameUpdateFunc = new FrameUpdateFunc();
+            }
+            mFrameUpdateFunc.Update(Update);
+        }
+
         public void SetSocketState(SOCKET_PEER_STATE mState)
         {
             this.mSocketPeerState = mState;
@@ -318,7 +328,5 @@ namespace AKNet.Udp3Tcp.Client
         }
         public void SetOwner(object owner) { this.Owner = owner; }
         public object GetOwner() { return this.Owner; }
-        public void SendNetData(byte[] data) { SendNetData(0, data); }
-        public void SendNetData(ReadOnlySpan<byte> data) { SendNetData(0, data); }
     }
 }

@@ -18,9 +18,9 @@ namespace githubExample
             mNetServer.InitNet(6000);
         }
 
-        public void Update(double fElapsedTime)
+        public void Update()
         {
-            mNetServer.Update(fElapsedTime);
+            mNetServer.Update();
         }
 
         private static void receive_csChat(ClientPeerBase clientPeer, NetPackage package)

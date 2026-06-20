@@ -67,6 +67,16 @@ namespace AKNet.LinuxTcp.Client
             }
         }
 
+        FrameUpdateFunc mFrameUpdateFunc = null;
+        public void Update()
+        {
+            if (mFrameUpdateFunc == null)
+            {
+                mFrameUpdateFunc = new FrameUpdateFunc();
+            }
+            mFrameUpdateFunc.Update(Update);
+        }
+
         public void SetSocketState(SOCKET_PEER_STATE mState)
         {
             this.mSocketPeerState = mState;

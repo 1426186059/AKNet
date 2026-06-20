@@ -44,6 +44,16 @@ namespace AKNet.Udp4Tcp.Server
             }
         }
 
+        FrameUpdateFunc mFrameUpdateFunc = null;
+        public void Update()
+        {
+            if (mFrameUpdateFunc == null)
+            {
+                mFrameUpdateFunc = new FrameUpdateFunc();
+            }
+            mFrameUpdateFunc.Update(Update);
+        }
+
         public bool MultiThreadingHandleConnectedSocket(Connection mSocket)
         {
             int nNowConnectCount = mClientList.Count + mConnectSocketQueue.Count;

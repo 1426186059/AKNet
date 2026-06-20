@@ -26,6 +26,16 @@ namespace AKNet.LinuxTcp.Server
             mNetServer.Update(elapsed);
         }
 
+        FrameUpdateFunc mFrameUpdateFunc = null;
+        public void Update()
+        {
+            if (mFrameUpdateFunc == null)
+            {
+                mFrameUpdateFunc = new FrameUpdateFunc();
+            }
+            mFrameUpdateFunc.Update(Update);
+        }
+
         public void InitNet(string Ip, int nPort)
         {
             mNetServer.InitNet(Ip, nPort);

@@ -195,7 +195,6 @@ namespace AKNet.Udp4Tcp.Server
         }
         public void SetOwner(object owner) { this.Owner = owner; }
         public object GetOwner() { return this.Owner; }
-        public void SendNetData(byte[] data) { SendNetData(0, data); }
-        public void SendNetData(ReadOnlySpan<byte> data) { SendNetData(0, data); }
     }
 }
+

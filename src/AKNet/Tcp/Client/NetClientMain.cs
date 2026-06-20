@@ -72,7 +72,7 @@ namespace AKNet.Tcp.Client
             mSocketPeerState = mLastSocketPeerState = SOCKET_PEER_STATE.DISCONNECTED;
         }
 
-		public void Update(double elapsed)
+        public void Update(double elapsed)
 		{
             if (elapsed >= 0.3)
             {
@@ -142,6 +142,16 @@ namespace AKNet.Tcp.Client
                 this.mLastSocketPeerState = mSocketPeerState;
                 this.mListenClientPeerStateMgr.OnSocketStateChanged(this);
             }
+        }
+
+        FrameUpdateFunc mFrameUpdateFunc = null;
+        public void Update()
+        {
+            if (mFrameUpdateFunc == null)
+            {
+                mFrameUpdateFunc = new FrameUpdateFunc();
+            }
+            mFrameUpdateFunc.Update(Update);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -265,8 +275,6 @@ namespace AKNet.Tcp.Client
         }
         public void SetOwner(object owner) { this.Owner = owner; }
         public object GetOwner() { return this.Owner; }
-        public void SendNetData(byte[] data) { SendNetData(0, data); }
-        public void SendNetData(ReadOnlySpan<byte> data) { SendNetData(0, data); }
     }
 }
 

@@ -93,6 +93,16 @@ namespace AKNet.Udp1Tcp.Server
             mClientPeerMgr2.Update(elapsed);
         }
 
+        FrameUpdateFunc mFrameUpdateFunc = null;
+        public void Update()
+        {
+            if (mFrameUpdateFunc == null)
+            {
+                mFrameUpdateFunc = new FrameUpdateFunc();
+            }
+            mFrameUpdateFunc.Update(Update);
+        }
+
         public CryptoMgr GetCryptoMgr()
         {
             return mCryptoMgr;
