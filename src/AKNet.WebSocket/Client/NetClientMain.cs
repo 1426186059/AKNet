@@ -60,6 +60,16 @@ namespace AKNet.WebSocket.Client
             mSocketPeerState = mLastSocketPeerState = SOCKET_PEER_STATE.DISCONNECTED;
         }
 
+        FrameUpdateFunc mFrameUpdateFunc = null;
+        public void Update()
+        {
+            if(mFrameUpdateFunc == null)
+            {
+                mFrameUpdateFunc = new FrameUpdateFunc();
+            }
+            mFrameUpdateFunc.Update(Update);
+        }
+
         public void Update(double elapsed)
         {
             if (elapsed >= 0.3)
