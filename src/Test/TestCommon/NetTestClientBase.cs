@@ -32,6 +32,8 @@ namespace TestNetClient
         readonly int[] mClientReceivePackageCount = new int[nClientCount];
 
         const int COMMAND_TESTCHAT = 1000;
+        const int COMMAND_SPACEBAR_CHAT = 1001;
+        int nSortId = 0;
 
         const string TalkMsg1 = "Begin..........End";
         const string TalkMsg2 = "Begin。。。。。。。。。。。。............................................" +
@@ -57,6 +59,7 @@ namespace TestNetClient
 
         public void Init()
         {
+            nSortId = 0;
             for (int i = 0; i < nClientCount; i++)
             {
                 NetClientMainBase mNetClient = Create();
@@ -79,6 +82,30 @@ namespace TestNetClient
         double fSumTime = 0;
         public void Update(double fElapsedTime)
         {
+            if (Console.KeyAvailable)
+            {
+                var key = Console.ReadKey(true);
+                if (key.Key == ConsoleKey.Spacebar && mClientList.Count > 0)
+                {
+                    var firstClient = mClientList[0];
+                    if (firstClient.GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
+                    {
+                        TESTChatMessage mdata = IMessagePool<TESTChatMessage>.Pop();
+                        mdata.NSortId = (uint)nSortId++;
+                        mdata.NClientId = 0;
+                        mdata.TalkMsg = TalkMsg1;
+
+                        firstClient.SendNetData(COMMAND_SPACEBAR_CHAT, mdata);
+                        IMessagePool<TESTChatMessage>.recycle(mdata);
+                        NetLog.Log("空格键按下，已发送一条消息");
+                    }
+                    else
+                    {
+                        NetLog.Log("第一个客户端未连接，无法发送消息");
+                    }
+                }
+            }
+
             for (int i = 0; i < nClientCount; i++)
             {
                 var v = mClientList[i];
