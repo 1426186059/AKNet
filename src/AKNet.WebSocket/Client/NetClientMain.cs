@@ -10,7 +10,9 @@
 using AKNet.Common;
 using System;
 using System.Net;
+#if !UNITY_WEBGL || UNITY_EDITOR
 using System.Net.WebSockets;
+#endif
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -39,7 +41,9 @@ namespace AKNet.WebSocket.Client
         private readonly NetStreamReceivePackage mNetPackage = new NetStreamReceivePackage();
         private byte[] mSendBuffer = new byte[CommonTcpLayerConfig.nIOContexBufferLength];
 
+#if !UNITY_WEBGL || UNITY_EDITOR
         private ClientWebSocket mWebSocket = null;
+#endif
         private string ServerIp = "";
         private int nServerPort = 0;
         private IPEndPoint mIPEndPoint = null;
@@ -76,6 +80,10 @@ namespace AKNet.WebSocket.Client
             {
                 NetLog.LogWarning("帧 时间 太长: " + elapsed);
             }
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+            WebGLServicePoll(elapsed);
+#endif
 
             switch (mSocketPeerState)
             {
@@ -177,6 +185,7 @@ namespace AKNet.WebSocket.Client
             return mRemoteEndPoint;
         }
 
+#if !UNITY_WEBGL || UNITY_EDITOR
         private void CloseSocket()
         {
             if (mWebSocket != null)
@@ -187,6 +196,7 @@ namespace AKNet.WebSocket.Client
                 try { ws.Dispose(); } catch { }
             }
         }
+#endif
 
         public void addNetListenFunc(ushort nPackageId, Action<ClientPeerBase, NetPackage> fun)
         { mPackageManager.addNetListenFunc(nPackageId, fun); }

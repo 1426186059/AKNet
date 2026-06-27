@@ -11,13 +11,16 @@ using AKNet.Common;
 using System;
 using System.Diagnostics;
 using System.Net;
+#if !UNITY_WEBGL || UNITY_EDITOR
 using System.Net.WebSockets;
 using System.Threading.Tasks;
+#endif
 
 namespace AKNet.WebSocket.Client
 {
     internal partial class NetClientMain
     {
+#if !UNITY_WEBGL || UNITY_EDITOR
         public void ReConnectServer()
         {
             bool Connected = false;
@@ -152,5 +155,6 @@ namespace AKNet.WebSocket.Client
                     SetSocketState(SOCKET_PEER_STATE.DISCONNECTED);
             }
         }
+#endif
     }
 }

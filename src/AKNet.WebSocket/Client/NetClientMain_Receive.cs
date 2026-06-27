@@ -9,13 +9,16 @@
 ************************************Copyright*****************************************/
 using AKNet.Common;
 using System;
+#if !UNITY_WEBGL || UNITY_EDITOR
 using System.Net.WebSockets;
 using System.Threading.Tasks;
+#endif
 
 namespace AKNet.WebSocket.Client
 {
     internal partial class NetClientMain
     {
+#if !UNITY_WEBGL || UNITY_EDITOR
         private async Task ReceiveLoopAsync()
         {
             var receiveBuffer = new byte[1024 * 64];
@@ -51,6 +54,7 @@ namespace AKNet.WebSocket.Client
                 DisConnectedWithError();
             }
         }
+#endif
 
         private bool NetPackageExecute()
         {
