@@ -70,14 +70,27 @@ namespace AKNet.WebSocket.Server
 
         public IPEndPoint GetIPEndPoint() { return mIPEndPoint; }
 
-        public void SendNetStream(ReadOnlySpan<byte> mBufferSegment)
+        private void SendNetStream(ReadOnlySpan<byte> mBufferSegment)
         {
             ResetSendHeartBeatTime();
-            lock (mSendStreamList) { mSendStreamList.WriteFrom(mBufferSegment); }
-            if (!bSending) { bSending = true; _ = System.Threading.Tasks.Task.Run(SendLoopAsync); }
-        }
+            lock (mSendStreamList) 
+            { 
+                mSendStreamList.WriteFrom(mBufferSegment); 
+            }
 
-        private bool bSending = false;
+            if (!bSending)
+            {
+                bSending = true;
+                _ = System.Threading.Tasks.Task.Run(SendLoopAsync);
+            }
+            else
+            {
+                if (!bSending && mSendStreamList.Length > 0)
+                {
+                    NetLog.LogError("SendNetStream Error");
+                }
+            }
+        }
 
         private async System.Threading.Tasks.Task SendLoopAsync()
         {

@@ -9,6 +9,7 @@
 ************************************Copyright*****************************************/
 using AKNet.Common;
 using System;
+using System.Diagnostics;
 using System.Net;
 using System.Net.WebSockets;
 using System.Threading.Tasks;
@@ -89,11 +90,26 @@ namespace AKNet.WebSocket.Client
             return GetSocketState() == SOCKET_PEER_STATE.DISCONNECTED;
         }
 
-        public void SendNetStream(ReadOnlySpan<byte> mBufferSegment)
+        private void SendNetStream(ReadOnlySpan<byte> mBufferSegment)
         {
             ResetSendHeartBeatTime();
-            lock (mSendStreamList) { mSendStreamList.WriteFrom(mBufferSegment); }
-            if (!bSending) { bSending = true; _ = Task.Run(SendLoopAsync); }
+            lock (mSendStreamList)
+            {
+                mSendStreamList.WriteFrom(mBufferSegment);
+            }
+
+            if (!bSending)
+            {
+                bSending = true;
+                _ = Task.Run(SendLoopAsync);
+            }
+            else
+            {
+                if (!bSending && mSendStreamList.Length > 0)
+                {
+                    NetLog.LogError("SendNetStream Error");
+                }
+            }
         }
 
         private async Task SendLoopAsync()
