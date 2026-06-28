@@ -69,20 +69,20 @@ namespace AKNet.Tcp.Server
 				this.mListenSocket.Bind(localEndPoint);
 				this.mListenSocket.Listen(this.mConfigInstance.MaxPlayerCount);
 
-				NetLog.Log($"{NetType.TCP.ToString()} 服务器 初始化成功: {localEndPoint}");
+				NetLog.Log($"{NetType.Tcp.ToString()} 服务器 初始化成功: {localEndPoint}");
 				StartAcceptEventArg();
 			}
 			catch (SocketException ex)
 			{
 				mState = SOCKET_SERVER_STATE.EXCEPTION;
 				NetLog.LogError(ex.SocketErrorCode + " | " + ex.Message + " | " + ex.StackTrace);
-				NetLog.LogError($"{NetType.TCP.ToString()} 服务器 初始化失败: {mIPAddress} | {nPort}");
+				NetLog.LogError($"{NetType.Tcp.ToString()} 服务器 初始化失败: {mIPAddress} | {nPort}");
 			}
 			catch (Exception ex)
 			{
 				mState = SOCKET_SERVER_STATE.EXCEPTION;
 				NetLog.LogError(ex.Message + " | " + ex.StackTrace);
-				NetLog.LogError($"{NetType.TCP.ToString()} 服务器 初始化失败: {mIPAddress} | {nPort}");
+				NetLog.LogError($"{NetType.Tcp.ToString()} 服务器 初始化失败: {mIPAddress} | {nPort}");
 			}
 		}
 

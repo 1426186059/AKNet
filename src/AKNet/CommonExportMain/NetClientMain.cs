@@ -13,9 +13,21 @@ namespace AKNet.Common
     {
         public NetClientMain(NetType nNetType, ConfigInstance mConfigInstance = null)
         {
-            if (nNetType == NetType.TCP)
+            if (nNetType == NetType.Tcp)
             {
                 mInterface = new AKNet.Tcp.Client.NetClientMain(mConfigInstance);
+            }
+            else if (nNetType == NetType.Tcp2)
+            {
+                mInterface = new AKNet.Tcp2.Client.NetClientMain(mConfigInstance);
+            }
+            else if (nNetType == NetType.Tcp3)
+            {
+                mInterface = new AKNet.Tcp3.Client.NetClientMain(mConfigInstance);
+            }
+            else if (nNetType == NetType.Tcp4)
+            {
+                mInterface = new AKNet.Tcp4.Client.NetClientMain(mConfigInstance);
             }
             else if (nNetType == NetType.Udp1Tcp)
             {

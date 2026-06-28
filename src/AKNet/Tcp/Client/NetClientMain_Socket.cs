@@ -48,7 +48,7 @@ namespace AKNet.Tcp.Client
             {
                 bConnectIOContexUsed = true;
                 mConnectIOContex.RemoteEndPoint = mIPEndPoint;
-                NetLog.Log($"{NetType.TCP.ToString()} 客户端 正在连接服务器: {mIPEndPoint}");
+                NetLog.Log($"{NetType.Tcp.ToString()} 客户端 正在连接服务器: {mIPEndPoint}");
                 StartConnectEventArg();
             }
         }
@@ -96,7 +96,7 @@ namespace AKNet.Tcp.Client
         {
             if (e.SocketError == SocketError.Success)
             {
-                NetLog.Log($"{NetType.TCP.ToString()} 客户端 连接服务器: {mIPEndPoint} 成功");
+                NetLog.Log($"{NetType.Tcp.ToString()} 客户端 连接服务器: {mIPEndPoint} 成功");
                 SetSocketState(SOCKET_PEER_STATE.CONNECTED);
                 if (!bReceiveIOContextUsed) { bReceiveIOContextUsed = true; StartReceiveEventArg(); }
             }
@@ -104,7 +104,7 @@ namespace AKNet.Tcp.Client
             {
                 if (mConfigInstance.bAutoReConnect) SetSocketState(SOCKET_PEER_STATE.RECONNECTING);
                 else SetSocketState(SOCKET_PEER_STATE.DISCONNECTED);
-                NetLog.LogError($"{NetType.TCP.ToString()} 客户端 连接服务器: {mIPEndPoint} 失败：{e.SocketError}");
+                NetLog.LogError($"{NetType.Tcp.ToString()} 客户端 连接服务器: {mIPEndPoint} 失败：{e.SocketError}");
             }
             e.RemoteEndPoint = null;
             bConnectIOContexUsed = false;

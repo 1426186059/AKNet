@@ -13,7 +13,10 @@ namespace AKNet.Common
 {
     public enum NetType
     {
-        TCP,
+        Tcp,
+        Tcp2,
+        Tcp3,
+        Tcp4,
         [Obsolete] Udp1Tcp,
         Udp2Tcp,
         Udp3Tcp,

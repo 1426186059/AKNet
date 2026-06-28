@@ -4,7 +4,7 @@ namespace TestNetClient
 {
     public class NetHandler : NetTestClientBase
     {
-        NetType mNetType = NetType.TCP;
+        NetType mNetType = NetType.Tcp4;
         public override NetClientMainBase Create()
         {
             return new NetClientMain(mNetType);
