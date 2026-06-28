@@ -26,18 +26,18 @@ namespace AKNet.Common
 			mNetEventDic = new Dictionary<ushort, Action<ClientPeerBase, NetPackage>>();
 		}
 
-		public void NetPackageExecute(ClientPeerBase peer, NetPackage mPackage)
+		public void NetPackageExecute(ClientPeerBase peer, NetPackage mCachePackage)
 		{
 			if (mCommonListenFunc != null)
 			{
-				mCommonListenFunc(peer, mPackage);
+				mCommonListenFunc(peer, mCachePackage);
 			}
 			else
 			{
-				ushort nPackageId = mPackage.GetPackageId();
+				ushort nPackageId = mCachePackage.GetPackageId();
 				if (mNetEventDic.ContainsKey(nPackageId) && mNetEventDic[nPackageId] != null)
 				{
-					mNetEventDic[nPackageId](peer, mPackage);
+					mNetEventDic[nPackageId](peer, mCachePackage);
 				}
 				else
 				{
