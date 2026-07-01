@@ -1,83 +1,182 @@
 ﻿using System.Text;
-using TestCommon;
-namespace CopyrightProtectionTool
-{
-    internal class Program
-    {
-        const string Head = "/************************************Copyright*****************************************";
-        const string End = "************************************Copyright*****************************************/";
 
-        static readonly string[] dirList = {
-                "AKNet.Common",
-                "AKNet",
-                "AKNet.Extentions.Protobuf",
-                "AKNet.MSQuic",
-                "AKNet.Quic",
-                "AKNet.WebSocket",
-                "AKNet.Platform",
-                "AKNet.LinuxTcp"
+namespace CopyrightProtectionTool;
+
+internal class Program
+{
+    const string Head = "/************************************Copyright*****************************************";
+    const string End   = "************************************Copyright*****************************************/";
+
+    static readonly string[] DirList =
+    {
+        "AKNet.Common",
+        "AKNet",
+        "AKNet.Extentions.Protobuf",
+        "AKNet.MSQuic",
+        "AKNet.Quic",
+        "AKNet.WebSocket",
+        "AKNet.Platform",
+        "AKNet.LinuxTcp"
+    };
+
+    static readonly string[] SkipDirs = { "bin", "obj", ".git", ".vs" };
+
+    static int s_totalFiles;
+    static int s_updatedFiles;
+    static int s_errorFiles;
+    static bool s_dryRun;
+
+    static int Main(string[] args)
+    {
+        s_dryRun = args.Contains("--dry-run") || args.Contains("-n");
+
+        string? slnDir = FindSlnDir();
+        if (slnDir == null)
+        {
+            Console.Error.WriteLine("错误: 找不到 .sln 文件，请在仓库根目录下运行此工具。");
+            return 1;
+        }
+
+        Console.WriteLine($"工作目录: {slnDir}");
+        if (s_dryRun) Console.WriteLine("[预览模式] 不会实际修改文件\n");
+        Console.WriteLine();
+
+        string copyrightContent = GetCopyrightContent();
+
+        foreach (string dirName in DirList)
+        {
+            string codeDir = Path.Combine(slnDir, dirName);
+            if (!Directory.Exists(codeDir))
+            {
+                Console.WriteLine($"跳过不存在的目录: {dirName}");
+                continue;
+            }
+
+            foreach (string filePath in Directory.GetFiles(codeDir, "*.cs", SearchOption.AllDirectories))
+            {
+                if (ShouldSkip(filePath))
+                    continue;
+
+                ProcessFile(filePath, copyrightContent);
+            }
+        }
+
+        Console.WriteLine();
+        Console.WriteLine($"========== 完成 ==========");
+        Console.WriteLine($"总文件数 : {s_totalFiles}");
+        Console.WriteLine($"已更新   : {s_updatedFiles}");
+        if (s_errorFiles > 0)
+            Console.WriteLine($"出错     : {s_errorFiles}");
+        if (s_dryRun)
+            Console.WriteLine("(预览模式，文件未实际修改)");
+
+        return s_errorFiles > 0 ? 1 : 0;
+    }
+
+    static string? FindSlnDir()
+    {
+        // 从当前目录向上查找 .sln 文件，直到根目录
+        string dir = Directory.GetCurrentDirectory();
+        while (true)
+        {
+            if (Directory.GetFiles(dir, "*.sln").Length > 0)
+                return dir;
+
+            string? parent = Path.GetDirectoryName(dir);
+            if (parent == null || parent == dir) break;
+            dir = parent;
+        }
+        return null;
+    }
+
+    static bool ShouldSkip(string filePath)
+    {
+        // 跳过 bin/obj 等生成目录
+        string relative = filePath.Replace('\\', '/');
+        foreach (string skip in SkipDirs)
+        {
+            if (relative.Contains($"/{skip}/"))
+                return true;
+        }
+        return false;
+    }
+
+    static string GetCopyrightContent()
+    {
+        string templatePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "CodeSnippets.template.txt");
+        if (!File.Exists(templatePath))
+        {
+            Console.Error.WriteLine($"错误: 模板文件不存在: {templatePath}");
+            Environment.Exit(1);
+        }
+
+        string templateContent = File.ReadAllText(templatePath, Encoding.UTF8);
+
+        var replacements = new Dictionary<string, string>
+        {
+            ["$HEAD$"]        = Head,
+            ["$END$"]         = End,
+            ["$ProjectName$"] = "AKNet",
+            ["$Web$"]         = "https://github.com/825126369/AKNet",
+            ["$Author$"]      = "许珂",
+            ["$StartTime$"]   = "2024/11/01 00:00:00",
+            ["$ModifyTime$"]  = DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss"),
+            ["$Description$"] = "C# 游戏网络库",
+            ["$Copyright$"]   = "作者保留一切版权权利, 商业用途需支付版权费用",
+            ["$Contact$"]     = "微信：AAA-2025-666-888"
         };
 
-        static void Main(string[] args)
+        string result = templateContent;
+        foreach (var kv in replacements)
+            result = result.Replace(kv.Key, kv.Value);
+
+        return result;
+    }
+
+    static void ProcessFile(string filePath, string copyrightContent)
+    {
+        s_totalFiles++;
+        Console.WriteLine(filePath);
+
+        try
         {
-            foreach(string dirName in dirList)
-            {
-                string codeDir = Path.Combine(FileTool.GetSlnDir(), dirName);
-                if (Directory.Exists(codeDir))
-                {
-                    foreach (var v in Directory.GetFiles(codeDir, "*.cs", SearchOption.AllDirectories))
-                    {
-                        Do(v);
-                    }
-                }
-            }
-
-            Console.WriteLine("Finish !!!");
-            while (true) { }
-        }
-
-        static string GetCopyrightContent()
-        {
-            string templateContent = File.ReadAllText("CodeSnippets.template.txt", Encoding.UTF8);
-            Dictionary<string, string> mTemplateDic = new Dictionary<string, string>();
-            mTemplateDic["$ProjectName$"] = "AKNet";
-            mTemplateDic["$Web$"] = "https://github.com/825126369/AKNet";
-            mTemplateDic["$Author$"] = "许珂";
-            mTemplateDic["$StartTime$"] = "2024/11/01 00:00:00";
-            mTemplateDic["$ModifyTime$"] = DateTime.Now.ToString();
-            mTemplateDic["$Description$"] = "C#游戏网络库";
-            mTemplateDic["$Copyright$"] = "MIT软件许可证";
-            mTemplateDic["$HEAD$"] = Head;
-            mTemplateDic["$END$"] = End;
-
-            string addContent = templateContent;
-            foreach (var v in mTemplateDic)
-            {
-                addContent = addContent.Replace(v.Key, v.Value);
-            }
-
-            return addContent;
-        }
-
-        static void Do(string filePath)
-        {
-            Console.WriteLine(filePath);
             string code = File.ReadAllText(filePath, Encoding.UTF8);
-            while (code.StartsWith(Head))
+            string original = code;
+
+            // 移除已有的版权头（可能有多层）
+            while (code.TrimStart().StartsWith(Head))
             {
-                int nEndIndex = code.IndexOf(End);
-                int nRemoveLength = nEndIndex + End.Length;
-                code = code.Remove(0, nRemoveLength);
+                int startIdx = code.IndexOf(Head, StringComparison.Ordinal);
+                int endIdx = code.IndexOf(End, startIdx, StringComparison.Ordinal);
+                if (endIdx < 0) break;
+
+                int removeLen = endIdx + End.Length - startIdx;
+                code = code.Remove(startIdx, removeLen);
             }
 
-            code.TrimStart();
-            if (!code.StartsWith(Environment.NewLine))
+            // 去除版权头后的空白行
+            code = code.TrimStart();
+
+            // 添加新版权头
+            code = copyrightContent + Environment.NewLine + code;
+
+            if (code == original)
             {
-                code = Environment.NewLine + code;
+                // 没有变化
+                return;
             }
-            code = GetCopyrightContent() + code;
-            File.WriteAllText(filePath, code, Encoding.UTF8);
+
+            s_updatedFiles++;
+
+            if (!s_dryRun)
+            {
+                File.WriteAllText(filePath, code, Encoding.UTF8);
+            }
         }
-
+        catch (Exception ex)
+        {
+            s_errorFiles++;
+            Console.Error.WriteLine($"  错误: {ex.Message}");
+        }
     }
 }

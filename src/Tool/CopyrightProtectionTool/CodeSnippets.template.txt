@@ -1,9 +1,10 @@
 $HEAD$
-*        ProjectName:$ProjectName$
-*        Web:$Web$
-*        Description:$Description$
-*        Author:$Author$
-*        StartTime:$StartTime$
-*        ModifyTime:$ModifyTime$
-*        Copyright:$Copyright$
+ *  Project    : $ProjectName$
+ *  Web        : $Web$
+ *  Description: $Description$
+ *  Author     : $Author$
+ *  Since      : $StartTime$
+ *  Updated    : $ModifyTime$
+ *  Copyright  : $Copyright$
+ *  Contact    : $Contact$
 $END$
