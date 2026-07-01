@@ -22,6 +22,7 @@ namespace AKNet.Udp3Tcp.Server
 		{
             this.mNetServer = mNetServer;
             this.mInstance = mNetServer.GetClientPeerPool().Pop();
+            this.mInstance.SetWrap(this);
         }
 
         public void Reset()
