@@ -24,6 +24,8 @@ namespace AKNet.Udp2Tcp.Common
 			this.mPackageId = 0;
 			this.Length = 0;
         }
+
+        public void Dispose() { }
 	}
 
 	internal class NetUdpFixedSizePackage : IPoolItemInterface
@@ -74,10 +76,12 @@ namespace AKNet.Udp2Tcp.Common
             return this.nOrderId;
         }
 
-        public void SetPackageId(ushort nPackageId)
+		public void SetPackageId(ushort nPackageId)
         {
 			this.nOrderId = nPackageId;
         }
+
+        public void Dispose() { }
 
 		public void CopyFrom(ReadOnlySpan<byte> stream)
 		{

@@ -56,6 +56,8 @@ namespace AKNet.Udp4Tcp.Common
         {
 
         }
+
+        public void Dispose() { }
     }
 
     internal class ConnectionOP : OPBase<ConnectionOP>

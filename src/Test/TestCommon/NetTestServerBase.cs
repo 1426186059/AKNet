@@ -80,14 +80,12 @@ namespace TestNetServer
         {
             TESTChatMessage mdata = Proto3Tool.GetData<TESTChatMessage>(mPackage);
             peer.SendNetData(NetCommand_COMMAND_TESTCHAT, mdata);
-            IMessagePool<TESTChatMessage>.recycle(mdata);
         }
 
         private void ReceiveSpacebarMessage(ClientPeerBase peer, NetPackage mPackage)
         {
             TESTChatMessage mdata = Proto3Tool.GetData<TESTChatMessage>(mPackage);
             NetLog.Log($"[服务器收到空格消息] ClientId={mdata.NClientId}, SortId={mdata.NSortId}, TalkMsg={mdata.TalkMsg}");
-            IMessagePool<TESTChatMessage>.recycle(mdata);
         }
     }
 }

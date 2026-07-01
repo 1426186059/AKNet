@@ -77,5 +77,7 @@ namespace AKNet.LinuxTcp.Server
         {
             this.mNetServer.GetFakeSocketMgr().RemoveFakeSocket(this);
         }
+
+        public void Dispose() { }
     }
 }

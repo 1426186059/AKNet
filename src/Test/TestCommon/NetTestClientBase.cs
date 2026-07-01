@@ -203,8 +203,6 @@ namespace TestNetClient
                 NetLog.Log(msg);
                 OnTestFinish();
             }
-
-            IMessagePool<TESTChatMessage>.recycle(mdata);
         }
     }
 }

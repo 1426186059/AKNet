@@ -39,6 +39,8 @@ namespace AKNet.Udp5Tcp.Common
             nLength = 0;
         }
 
+        public void Dispose() { }
+
         public ReadOnlySpan<byte> GetCanReadSpan()
         {
             return mBuffer.Span.Slice(0, nLength);
@@ -119,6 +121,8 @@ namespace AKNet.Udp5Tcp.Common
         {
             nOrderId = nPackageId;
         }
+
+        public void Dispose() { }
     }
 
     internal class NetUdpReceiveFixedSizePackage : IPoolItemInterface
@@ -162,6 +166,8 @@ namespace AKNet.Udp5Tcp.Common
         {
             return mBuffer.AsSpan().Slice(0, nBodyLength);
         }
+
+        public void Dispose() { }
     }
 
 }

@@ -109,5 +109,7 @@ namespace AKNet.Udp2Tcp.Server
         {
             this.mServerMgr.RemoveFakeSocket(this);
         }
+
+        public void Dispose() { }
     }
 }

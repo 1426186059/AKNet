@@ -183,8 +183,6 @@ namespace TestNetClient
                 OnTestFinish();
                 bCallOnTestFinish = true;
             }
-
-            IMessagePool<TESTChatMessage>.recycle(mdata);
             nLastReceiveTime = mStopWatch.ElapsedMilliseconds;
         }
     }

@@ -30,6 +30,8 @@ namespace AKNet.LinuxTcp.Common
 			tsval = 0;
 			tsecr = 0;
         }
+
+        public void Dispose() { }
 	}
 
 	internal static partial class LinuxTcpFunc

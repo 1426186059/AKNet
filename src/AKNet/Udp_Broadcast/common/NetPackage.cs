@@ -31,6 +31,8 @@ namespace AKNet.Udp.Broadcast.Common
 			nPackageId = 0;
 			Length = 0;
         }
+
+        public void Dispose() { }
     }
 }
 

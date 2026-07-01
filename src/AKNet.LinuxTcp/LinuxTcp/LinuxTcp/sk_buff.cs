@@ -111,6 +111,8 @@ namespace AKNet.LinuxTcp.Common
         {
             return mBuffer.AsSpan().Slice(nBufferOffset + nBufferLength);
         }
+
+        public void Dispose() { }
     }
 
     internal static partial class LinuxTcpFunc

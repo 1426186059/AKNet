@@ -78,6 +78,8 @@ namespace AKNet.Udp3Tcp.Common
         {
             this.nOrderId = nPackageId;
         }
+
+        public void Dispose() { }
     }
 
     internal class NetUdpReceiveFixedSizePackage : IPoolItemInterface
@@ -121,6 +123,8 @@ namespace AKNet.Udp3Tcp.Common
         {
             return mBuffer.AsSpan().Slice(0, nBodyLength);
         }
+
+        public void Dispose() { }
     }
 
 }

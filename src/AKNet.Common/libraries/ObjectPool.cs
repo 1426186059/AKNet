@@ -17,7 +17,7 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("AKNet.WebSocket")]
 namespace AKNet.Common
 {
-    internal interface IPoolItemInterface
+    internal interface IPoolItemInterface: IDisposable
     {
 		void Reset();
     }
@@ -25,11 +25,11 @@ namespace AKNet.Common
 	//Object 池子
 	internal class ObjectPool<T> where T : class, IPoolItemInterface, new()
 	{
-        private readonly Stack<T> mObjectPool = new Stack<T>();
+		private readonly Stack<T> mObjectPool = new Stack<T>();
 		private readonly int nMaxCapacity = 0;
 		public ObjectPool(int initCapacity = 0, int MaxCapacity = 0)
 		{
-            this.nMaxCapacity = MaxCapacity;
+			this.nMaxCapacity = MaxCapacity;
 			for (int i = 0; i < initCapacity; i++)
 			{
 				mObjectPool.Push(new T());
@@ -43,11 +43,11 @@ namespace AKNet.Common
 
 		public T Pop()
 		{
-			T t = null;
+            T t = null;
 			if (!mObjectPool.TryPop(out t))
 			{
-                t = new T();
-            }
+				t = new T();
+			}
 			return t;
 		}
 
@@ -55,17 +55,21 @@ namespace AKNet.Common
 		{
 #if DEBUG
             NetLog.Assert(t.GetType().Name == typeof(T).Name, $"{t.GetType()} : {typeof(T)} ");
-            NetLog.Assert(!mObjectPool.Contains(t));
+			NetLog.Assert(!mObjectPool.Contains(t));
 #endif
-            t.Reset();
-            //防止 内存一直增加，合理的GC
-            bool bRecycle = nMaxCapacity <= 0 || mObjectPool.Count < nMaxCapacity;
-            if (bRecycle)
+			t.Reset();
+			//防止 内存一直增加，合理的GC
+			bool bRecycle = nMaxCapacity <= 0 || mObjectPool.Count < nMaxCapacity;
+			if (bRecycle)
 			{
 				mObjectPool.Push(t);
 			}
+			else
+			{
+				t.Dispose();
+			}
 		}
-    }
+	}
 
 	internal class SafeObjectPool<T> where T : class, IPoolItemInterface, new()
 	{
@@ -116,6 +120,10 @@ namespace AKNet.Common
 				{
 					mObjectPool.Push(t);
 				}
+			}
+			else
+			{
+				t.Dispose();
 			}
 		}
 
@@ -182,6 +190,10 @@ namespace AKNet.Common
 			if (bRecycle)
 			{
 				mObjectPool.Add(t);
+			}
+			else
+			{
+				t.Dispose();
 			}
         }
 

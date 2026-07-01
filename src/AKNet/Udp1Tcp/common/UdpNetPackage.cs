@@ -84,6 +84,8 @@ namespace AKNet.Udp1Tcp.Common
 			this.remoteEndPoint = null;
             this.buffer = null;
         }
+
+        public void Dispose() { }
 	}
 
 
@@ -118,6 +120,8 @@ namespace AKNet.Udp1Tcp.Common
 				mTimeOutGenerator_ReSend.Reset();
 			}
 		}
+
+		public void Dispose() { }
 
 		public void CopyFrom(NetUdpFixedSizePackage other)
 		{
@@ -210,6 +214,8 @@ namespace AKNet.Udp1Tcp.Common
 			this.remoteEndPoint = null;
 			NetLog.Assert(CheckCombineFinish());
 		}
+
+        public void Dispose() { }
 	}
 }
 

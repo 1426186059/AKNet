@@ -53,6 +53,8 @@ namespace AKNet.LinuxTcp.Common
             start_seq = 0;
             end_seq = 0;
         }
+
+        public void Dispose() { }
     }
 
     internal class tcp_sacktag_state

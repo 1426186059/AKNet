@@ -83,7 +83,6 @@ namespace TestNetServer
             {
                 peer.SendNetData(i, NetCommand_COMMAND_TESTCHAT, mdata);
             }
-            IMessagePool<TESTChatMessage>.recycle(mdata);
 
             if (nReceivePackageCount % 10000 == 0)
             {

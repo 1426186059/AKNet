@@ -207,5 +207,7 @@ namespace AKNet.Udp1Tcp.Server
         {
             this.mServerMgr.GetFakeSocketMgr().RemoveFakeSocket(this);
         }
+
+        public void Dispose() { }
     }
 }
