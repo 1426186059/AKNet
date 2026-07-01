@@ -16,6 +16,15 @@ namespace TestNetClient
             UpdateMgr.Do(Update);
         }
 
+        public void DisposeClients()
+        {
+            foreach (var client in mClientList)
+            {
+                client.Dispose();
+            }
+            mClientList.Clear();
+        }
+
         public abstract QuicClientMainBase Create();
         public abstract void OnTestFinish();
 

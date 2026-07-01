@@ -1,5 +1,7 @@
 ﻿using AKNet.Common;
 using AKNet.Extentions.Protobuf;
+using System;
+using System.Collections.Generic;
 using TestCommon;
 using TestProtocol;
 
@@ -8,6 +10,7 @@ namespace TestNetServer
     public abstract class NetTestServerBase
     {
         NetServerMainBase mNetServer = null;
+        private readonly List<ClientPeerBase> mClientPeerList = new List<ClientPeerBase>();
         const int NetCommand_COMMAND_TESTCHAT = 1000;
         const int NetCommand_COMMAND_SPACEBAR_CHAT = 1001;
 
@@ -26,12 +29,51 @@ namespace TestNetServer
             mNetServer = Create();
             mNetServer.addNetListenFunc(NetCommand_COMMAND_TESTCHAT, ReceiveMessage);
             mNetServer.addNetListenFunc(NetCommand_COMMAND_SPACEBAR_CHAT, ReceiveSpacebarMessage);
+            mNetServer.addListenClientPeerStateFunc(OnClientPeerStateChanged);
             mNetServer.InitNet(6000);
+        }
+
+        private void OnClientPeerStateChanged(ClientPeerBase peer, SOCKET_PEER_STATE state)
+        {
+            if (state == SOCKET_PEER_STATE.CONNECTED)
+            {
+                mClientPeerList.Add(peer);
+                NetLog.Log($"客户端连接: {peer.GetIPEndPoint()}, 当前连接数: {mClientPeerList.Count}");
+            }
+            else if (state == SOCKET_PEER_STATE.DISCONNECTED)
+            {
+                mClientPeerList.Remove(peer);
+            }
         }
 
         public void Update(double fElapsedTime)
         {
             mNetServer.Update(fElapsedTime);
+
+            if (Console.KeyAvailable)
+            {
+                var key = Console.ReadKey(true);
+                if (key.Key == ConsoleKey.Delete)
+                {
+                    if (mClientPeerList.Count > 0)
+                    {
+                        var peer = mClientPeerList[0];
+                        NetLog.Log($"Delete键按下，Dispose客户端: {peer.GetIPEndPoint()}");
+                        peer.Dispose();
+                        mClientPeerList.RemoveAt(0);
+                    }
+                    else
+                    {
+                        NetLog.Log("Delete键按下，但没有已连接的客户端");
+                    }
+                }
+            }
+        }
+
+        public void Dispose()
+        {
+            mNetServer?.Dispose();
+            mNetServer = null;
         }
 
         private void ReceiveMessage(ClientPeerBase peer, NetPackage mPackage)

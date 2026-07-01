@@ -34,6 +34,12 @@ namespace githubExample
             mNetClient.Update();
         }
 
+        public void Dispose()
+        {
+            mNetClient?.Dispose();
+            mNetClient = null;
+        }
+
         void ReceiveMessage(ClientPeerBase peer, NetPackage mPackage)
         {
             TESTChatMessage mdata = TESTChatMessage.Parser.ParseFrom(mPackage.GetData());

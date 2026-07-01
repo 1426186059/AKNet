@@ -12,7 +12,7 @@ using System.Net;
 
 namespace AKNet.Common
 {
-    public interface QuicClientPeerBase
+    public interface QuicClientPeerBase: IDisposable
     {
         IPEndPoint GetIPEndPoint();
         SOCKET_PEER_STATE GetSocketState();
