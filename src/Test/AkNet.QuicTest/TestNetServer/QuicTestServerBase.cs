@@ -32,8 +32,18 @@ namespace TestNetServer
             mNetServer.InitNet(6000);
         }
 
+        private void CheckIsClientPeerWrap(QuicClientPeerBase peer)
+        {
+            if (peer.GetType().Name != "ClientPeerWrap")
+            {
+                throw new InvalidOperationException($"Server期望ClientPeerWrap类型，实际收到: {peer.GetType().FullName}");
+            }
+        }
+
         private void OnClientPeerStateChanged(QuicClientPeerBase peer, SOCKET_PEER_STATE state)
         {
+            CheckIsClientPeerWrap(peer);
+
             if (state == SOCKET_PEER_STATE.CONNECTED)
             {
                 mClientPeerList.Add(peer);
@@ -58,8 +68,8 @@ namespace TestNetServer
                     {
                         var peer = mClientPeerList[0];
                         NetLog.Log($"Delete键按下，Dispose客户端: {peer.GetIPEndPoint()}");
+                        mClientPeerList.RemoveAt(0);  // 先移除再Dispose，避免Dispose触发断开回调导致空列表
                         peer.Dispose();
-                        mClientPeerList.RemoveAt(0);
                     }
                     else
                     {
@@ -77,6 +87,7 @@ namespace TestNetServer
 
         private void ReceiveChatMessage(QuicClientPeerBase peer, QuicNetPackage mPackage)
         {
+            CheckIsClientPeerWrap(peer);
             TESTChatMessage mdata = Proto3Tool.GetData<TESTChatMessage>(mPackage);
             nReceivePackageCount++;
             for (byte i = 1; i <= nSingleClientStreamCount; i++)

@@ -33,8 +33,18 @@ namespace TestNetServer
             mNetServer.InitNet(6000);
         }
 
+        private void CheckIsClientPeerWrap(ClientPeerBase peer)
+        {
+            if (peer.GetType().Name != "ClientPeerWrap")
+            {
+                throw new InvalidOperationException($"Server期望ClientPeerWrap类型，实际收到: {peer.GetType().FullName}");
+            }
+        }
+
         private void OnClientPeerStateChanged(ClientPeerBase peer, SOCKET_PEER_STATE state)
         {
+            CheckIsClientPeerWrap(peer);
+
             if (state == SOCKET_PEER_STATE.CONNECTED)
             {
                 mClientPeerList.Add(peer);
@@ -78,12 +88,14 @@ namespace TestNetServer
 
         private void ReceiveMessage(ClientPeerBase peer, NetPackage mPackage)
         {
+            CheckIsClientPeerWrap(peer);
             TESTChatMessage mdata = Proto3Tool.GetData<TESTChatMessage>(mPackage);
             peer.SendNetData(NetCommand_COMMAND_TESTCHAT, mdata);
         }
 
         private void ReceiveSpacebarMessage(ClientPeerBase peer, NetPackage mPackage)
         {
+            CheckIsClientPeerWrap(peer);
             TESTChatMessage mdata = Proto3Tool.GetData<TESTChatMessage>(mPackage);
             NetLog.Log($"[服务器收到空格消息] ClientId={mdata.NClientId}, SortId={mdata.NSortId}, TalkMsg={mdata.TalkMsg}");
         }
