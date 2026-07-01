@@ -32,21 +32,16 @@ namespace AKNet.LinuxTcp.Server
 
 		public void ReceiveConnect(sk_buff skb)
 		{
-			Reset();
+			OnConnectReset();
 			mUdpCheckPool.InitConnect();
 			mUdpCheckPool.FinishConnect(skb);
-
-            fReceiveHeartBeatTime = 0.0;
-			fMySendHeartBeatCdTime = 0.0;
 			SetSocketState(SOCKET_PEER_STATE.CONNECTED);
 			SendInnerNetData(UdpNetCommand.COMMAND_CONNECT);
 		}
 
 		public void ReceiveDisConnect()
 		{
-			Reset();
-			fMySendHeartBeatCdTime = 0.0;
-			fReceiveHeartBeatTime = 0.0;
+			OnDisConnectReset();
 			SetSocketState(SOCKET_PEER_STATE.DISCONNECTED);
 			SendInnerNetData(UdpNetCommand.COMMAND_DISCONNECT);
 		}

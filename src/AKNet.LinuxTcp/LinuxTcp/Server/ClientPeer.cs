@@ -181,8 +181,7 @@ namespace AKNet.LinuxTcp.Server
 
         public void Dispose()
         {
-            OnSocketStateChanged();
-            ResetSocketState();
+            Reset();
 
             SendArgs.Dispose();
             lock (mSendStreamList)
