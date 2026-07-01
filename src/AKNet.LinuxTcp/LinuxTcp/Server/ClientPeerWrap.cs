@@ -17,8 +17,8 @@ namespace AKNet.LinuxTcp.Server
     internal class ClientPeerWrap : ClientPeerBase
 	{
         private ClientPeer mInstance = null;
-        private UdpServer mNetServer;
-        public ClientPeerWrap(UdpServer mNetServer)
+        private NetServerMain mNetServer;
+        public ClientPeerWrap(NetServerMain mNetServer)
 		{
             this.mNetServer = mNetServer;
             this.mInstance = mNetServer.mClientPeerPool.Pop();

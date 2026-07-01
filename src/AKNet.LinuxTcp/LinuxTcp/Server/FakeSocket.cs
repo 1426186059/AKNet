@@ -17,11 +17,11 @@ namespace AKNet.LinuxTcp.Server
 {
     internal class FakeSocket : IPoolItemInterface
     {
-        private readonly UdpServer mNetServer;
+        private readonly NetServerMain mNetServer;
         private ClientPeer mClientPeer;
         private readonly AkCircularSpanBuffer mAkCircularSpanBuffer = new AkCircularSpanBuffer();
         public IPEndPoint RemoteEndPoint;
-        public FakeSocket(UdpServer mNetServer)
+        public FakeSocket(NetServerMain mNetServer)
         {
             this.mNetServer = mNetServer;
         }
@@ -61,7 +61,7 @@ namespace AKNet.LinuxTcp.Server
         
         public bool SendToAsync(SocketAsyncEventArgs mArg)
         {
-            return this.mNetServer.GetSocketMgr().SendToAsync(mArg);
+            return this.mNetServer.SendToAsync(mArg);
         }
 
         public void Reset()
@@ -75,7 +75,7 @@ namespace AKNet.LinuxTcp.Server
 
         public void Close()
         {
-            this.mNetServer.GetFakeSocketMgr().RemoveFakeSocket(this);
+            this.mNetServer.RemoveFakeSocket(this);
         }
 
         public void Dispose() { }

@@ -1,4 +1,4 @@
-﻿/************************************Copyright*****************************************
+/************************************Copyright*****************************************
 *        ProjectName:AKNet
 *        Web:https://github.com/825126369/AKNet
 *        Description:C#游戏网络库
@@ -15,30 +15,8 @@ using System.Net.Sockets;
 
 namespace AKNet.LinuxTcp.Server
 {
-    internal class ClientPeerSocketMgr
+    internal partial class ClientPeer
     {
-        private UdpServer mNetServer = null;
-        private ClientPeer mClientPeer = null;
-
-        FakeSocket mSocket = null;
-        readonly object lock_mSocket_object =new object();
-
-        readonly SocketAsyncEventArgs SendArgs = new SocketAsyncEventArgs();
-        readonly AkCircularSpanBuffer mSendStreamList = null;
-        bool bSendIOContexUsed = false;
-
-        IPEndPoint mIPEndPoint;
-
-        public ClientPeerSocketMgr(UdpServer mNetServer, ClientPeer mClientPeer)
-        {
-            this.mNetServer = mNetServer;
-            this.mClientPeer = mClientPeer;
-
-            SendArgs.Completed += ProcessSend;
-            SendArgs.SetBuffer(new byte[Config.nUdpPackageFixedSize], 0, Config.nUdpPackageFixedSize);
-            mSendStreamList = new AkCircularSpanBuffer();
-        }
-
         public void HandleConnectedSocket(FakeSocket mSocket)
         {
             MainThreadCheck.Check();
@@ -47,6 +25,8 @@ namespace AKNet.LinuxTcp.Server
             this.mSocket = mSocket;
             this.mIPEndPoint = mSocket.RemoteEndPoint;
             SendArgs.RemoteEndPoint = this.mIPEndPoint;
+            SetSocketState(SOCKET_PEER_STATE.CONNECTED);
+            mSocket.SetClientPeer(this);
         }
 
         public IPEndPoint GetIPEndPoint()
@@ -66,7 +46,7 @@ namespace AKNet.LinuxTcp.Server
             return mSocket.GetReceivePackage();
         }
 
-        public bool SendToAsync(SocketAsyncEventArgs e)
+        private bool SendToAsync(SocketAsyncEventArgs e)
         {
             bool bIOSyncCompleted = false;
             if (mSocket != null)
@@ -96,12 +76,12 @@ namespace AKNet.LinuxTcp.Server
             else
             {
                 NetLog.LogError(e.SocketError);
-                mClientPeer.SetSocketState(SOCKET_PEER_STATE.DISCONNECTED);
+                SetSocketState(SOCKET_PEER_STATE.DISCONNECTED);
                 bSendIOContexUsed = false;
             }
         }
 
-        public void SendNetPackage(ReadOnlySpan<byte> mPackage)
+        public void WriteToSendBuffer(ReadOnlySpan<byte> mPackage)
         {
             MainThreadCheck.Check();
             lock (mSendStreamList)
@@ -115,7 +95,6 @@ namespace AKNet.LinuxTcp.Server
             }
         }
 
-        int nLastSendBytesCount = 0;
         private void SendNetStream2(int BytesTransferred = -1)
         {
             if (BytesTransferred >= 0)
@@ -156,22 +135,5 @@ namespace AKNet.LinuxTcp.Server
                 mSocket = null;
             }
         }
-
-        public void Reset()
-        {
-            lock (mSendStreamList)
-            {
-                mSendStreamList.Reset();
-            }
-        }
-
-        public void Dispose()
-        {
-            lock (mSendStreamList)
-            {
-                mSendStreamList.Dispose();
-            }
-        }
-
     }
 }

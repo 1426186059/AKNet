@@ -16,7 +16,7 @@ namespace AKNet.LinuxTcp.Server
     internal class FakeSocketPool
     {
         readonly Stack<FakeSocket> mObjectPool = new Stack<FakeSocket>();
-        UdpServer mUdpServer = null;
+        NetServerMain mUdpServer = null;
         private int nMaxCapacity = 0;
         private FakeSocket GenerateObject()
         {
@@ -24,7 +24,7 @@ namespace AKNet.LinuxTcp.Server
             return clientPeer;
         }
 
-        public FakeSocketPool(UdpServer mUdpServer, int initCapacity = 0, int nMaxCapacity = 0)
+        public FakeSocketPool(NetServerMain mUdpServer, int initCapacity = 0, int nMaxCapacity = 0)
         {
             this.mUdpServer = mUdpServer;
             SetMaxCapacity(nMaxCapacity);

@@ -1,4 +1,4 @@
-﻿/************************************Copyright*****************************************
+/************************************Copyright*****************************************
 *        ProjectName:AKNet
 *        Web:https://github.com/825126369/AKNet
 *        Description:C#游戏网络库
@@ -15,21 +15,8 @@ using System.Net.Sockets;
 
 namespace AKNet.LinuxTcp.Server
 {
-    internal class FakeSocketMgr
+    internal partial class NetServerMain
     {
-        private UdpServer mNetServer = null;
-        private readonly Dictionary<string, FakeSocket> mAcceptSocketDic = null;
-        private readonly FakeSocketPool mFakeSocketPool = null;
-        private readonly int nMaxPlayerCount = 0;
-
-        public FakeSocketMgr(UdpServer mNetServer)
-        {
-            this.mNetServer = mNetServer;
-            nMaxPlayerCount = Config.MaxPlayerCount;
-            mFakeSocketPool = new FakeSocketPool(mNetServer, nMaxPlayerCount, nMaxPlayerCount);
-            mAcceptSocketDic = new Dictionary<string, FakeSocket>(nMaxPlayerCount);
-        }
-
         public void MultiThreadingReceiveNetPackage(SocketAsyncEventArgs e)
         {
             IPEndPoint endPoint = (IPEndPoint)e.RemoteEndPoint;
@@ -43,7 +30,7 @@ namespace AKNet.LinuxTcp.Server
 
             if (mFakeSocket == null)
             {
-                if (mAcceptSocketDic.Count >= nMaxPlayerCount)
+                if (mAcceptSocketDic.Count >= Config.MaxPlayerCount)
                 {
 #if DEBUG
                     NetLog.Log($"服务器爆满, 客户端总数: {mAcceptSocketDic.Count}");
@@ -53,7 +40,7 @@ namespace AKNet.LinuxTcp.Server
                 {
                     mFakeSocket = mFakeSocketPool.Pop();
                     mFakeSocket.RemoteEndPoint = endPoint;
-                    mNetServer.GetClientPeerMgr().MultiThreadingHandleConnectedSocket(mFakeSocket);
+                    MultiThreadingHandleConnectedSocket(mFakeSocket);
 
                     lock (mAcceptSocketDic)
                     {

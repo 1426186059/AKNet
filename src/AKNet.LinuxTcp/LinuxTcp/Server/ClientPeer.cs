@@ -11,37 +11,51 @@ using AKNet.Common;
 using AKNet.LinuxTcp.Common;
 using System;
 using System.Net;
+using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 
 namespace AKNet.LinuxTcp.Server
 {
-    internal class ClientPeer : UdpClientPeerCommonBase, ClientPeerBase
+    internal partial class ClientPeer : UdpClientPeerCommonBase, ClientPeerBase
 	{
-        internal MsgSendMgr mMsgSendMgr;
-        internal MsgReceiveMgr mMsgReceiveMgr;
-        internal ClientPeerSocketMgr mSocketMgr;
-
         private readonly ObjectPoolManager mObjectPoolManager;
         internal UdpCheckMgr mUdpCheckPool = null;
-        internal UDPLikeTCPMgr mUDPLikeTCPMgr = null;
         private SOCKET_PEER_STATE mSocketPeerState;
         private SOCKET_PEER_STATE mLastSocketPeerState;
-        private UdpServer mNetServer;
+        private NetServerMain mNetServer;
         private ClientPeerWrap mWrap;
         private string Name = string.Empty;
         private uint ID = 0;
         private object Owner = null;
 
-        public ClientPeer(UdpServer mNetServer)
+        private readonly NetStreamCircularBuffer mReceiveStreamList = null;
+        private readonly msghdr mTcpMsg = null;
+
+        // heartbeat
+        private double fReceiveHeartBeatTime = 0.0;
+        private double fMySendHeartBeatCdTime = 0.0;
+
+        // socket IO
+        private FakeSocket mSocket = null;
+        private readonly SocketAsyncEventArgs SendArgs = new SocketAsyncEventArgs();
+        private readonly AkCircularSpanBuffer mSendStreamList = null;
+        private bool bSendIOContexUsed = false;
+        private int nLastSendBytesCount = 0;
+        private IPEndPoint mIPEndPoint;
+
+        public ClientPeer(NetServerMain mNetServer)
         {
             this.mNetServer = mNetServer;
-            mSocketMgr = new ClientPeerSocketMgr(mNetServer, this);
-            mMsgReceiveMgr = new MsgReceiveMgr(mNetServer, this);
-            mMsgSendMgr = new MsgSendMgr(mNetServer, this);
             mUdpCheckPool = new UdpCheckMgr(this);
-            mUDPLikeTCPMgr = new UDPLikeTCPMgr(mNetServer, this);
+
+            // socket
+            SendArgs.Completed += ProcessSend;
+            SendArgs.SetBuffer(new byte[Config.nUdpPackageFixedSize], 0, Config.nUdpPackageFixedSize);
+            mSendStreamList = new AkCircularSpanBuffer();
 
             mObjectPoolManager = new ObjectPoolManager();
+            this.mReceiveStreamList = new NetStreamCircularBuffer();
+            this.mTcpMsg = new msghdr(mReceiveStreamList, 1500);
             ResetSocketState();
         }
 
@@ -52,8 +66,39 @@ namespace AKNet.LinuxTcp.Server
 
         public void Update(double elapsed)
         {
-            mMsgReceiveMgr.Update(elapsed);
-            mUDPLikeTCPMgr.Update(elapsed);
+            GetReceiveCheckPackage();
+            ReceiveTcpStream();
+
+            // heartbeat logic (from UDPLikeTCPMgr)
+            var mSocketPeerState = GetSocketState();
+            switch (mSocketPeerState)
+            {
+                case SOCKET_PEER_STATE.CONNECTED:
+                    {
+                        fMySendHeartBeatCdTime += elapsed;
+                        if (fMySendHeartBeatCdTime >= Config.fMySendHeartBeatMaxTime)
+                        {
+                            fMySendHeartBeatCdTime = 0.0;
+                            SendHeartBeat();
+                        }
+
+                        // 有可能网络流量大的时候，会while循环卡住
+                        double fHeatTime = Math.Min(0.3, elapsed);
+                        fReceiveHeartBeatTime += fHeatTime;
+                        if (fReceiveHeartBeatTime >= Config.fReceiveHeartBeatTimeOut)
+                        {
+                            fReceiveHeartBeatTime = 0.0;
+#if DEBUG
+                            NetLog.Log("Server 接收服务器心跳 超时 ");
+#endif
+                            SetSocketState(SOCKET_PEER_STATE.DISCONNECTED);
+                        }
+                        break;
+                    }
+                default:
+                    break;
+            }
+
             mUdpCheckPool.Update(elapsed);
 
             OnSocketStateChanged();
@@ -86,17 +131,51 @@ namespace AKNet.LinuxTcp.Server
             this.mSocketPeerState = this.mLastSocketPeerState = SOCKET_PEER_STATE.DISCONNECTED;
         }
 
+        private void OnConnectReset()
+        {
+            this.mUdpCheckPool.Reset();
+            lock (mSendStreamList)
+            {
+                this.mSendStreamList.Reset();
+            }
+            this.fReceiveHeartBeatTime = 0;
+            this.fMySendHeartBeatCdTime = 0;
+        }
+
+        private void OnDisConnectReset()
+        {
+            this.mUdpCheckPool.Reset();
+            lock (mSendStreamList)
+            {
+                this.mSendStreamList.Reset();
+            }
+            this.fReceiveHeartBeatTime = 0;
+            this.fMySendHeartBeatCdTime = 0;
+        }
+
         public void Reset()
         {
             OnSocketStateChanged();
             ResetSocketState();
 
-            mUDPLikeTCPMgr.Reset();
-            mMsgReceiveMgr.Reset();
-            mUdpCheckPool.Reset();
-            mSocketMgr.Reset();
+            CloseSocket();
+            this.mUdpCheckPool.Reset();
+
+            lock (mSendStreamList)
+            {
+                this.mSendStreamList.Reset();
+            }
+
+            lock (mReceiveStreamList)
+            {
+                mReceiveStreamList.Reset();
+            }
+
             this.Name = string.Empty;
             this.ID = 0;
+            this.fReceiveHeartBeatTime = 0;
+            this.fMySendHeartBeatCdTime = 0;
+            this.bSendIOContexUsed = false;
             mWrap = null;
         }
 
@@ -105,76 +184,22 @@ namespace AKNet.LinuxTcp.Server
             OnSocketStateChanged();
             ResetSocketState();
 
-            mMsgReceiveMgr.Dispose();
-            mSocketMgr.Dispose();
-        }
+            SendArgs.Dispose();
+            lock (mSendStreamList)
+            {
+                this.mSendStreamList.Dispose();
+            }
 
-        public void CloseSocket()
-        {
-            mSocketMgr.CloseSocket();
-        }
-
-        public void HandleConnectedSocket(FakeSocket mSocket)
-        {
-            SetSocketState(SOCKET_PEER_STATE.CONNECTED);
-            mSocketMgr.HandleConnectedSocket(mSocket);
-            mSocket.SetClientPeer(this);
-        }
-
-        public IPEndPoint GetIPEndPoint()
-        {
-            return mSocketMgr.GetIPEndPoint();
+            lock (mReceiveStreamList)
+            {
+                mReceiveStreamList.Dispose();
+            }
         }
 
         public void SendNetPackage(sk_buff skb)
         {
-            mUDPLikeTCPMgr.ResetSendHeartBeatCdTime();
-            this.mSocketMgr.SendNetPackage(skb.GetSendBuffer());
-        }
-
-        public void SendInnerNetData(byte id)
-        {
-            mMsgSendMgr.SendInnerNetData(id);
-        }
-
-        public void SendNetData(ushort nPackageId)
-        {
-            mMsgSendMgr.SendNetData(nPackageId);
-        }
-
-        public void SendNetData(ushort nPackageId, byte[] data)
-        {
-            mMsgSendMgr.SendNetData(nPackageId, data);
-        }
-
-        public void SendNetData(NetPackage mNetPackage)
-        {
-            mMsgSendMgr.SendNetData(mNetPackage);
-        }
-
-        public void SendNetData(ushort nPackageId, ReadOnlySpan<byte> buffer)
-        {
-            mMsgSendMgr.SendNetData(nPackageId, buffer);
-        }
-
-        public void ResetSendHeartBeatCdTime()
-        {
-            this.mUDPLikeTCPMgr.ResetSendHeartBeatCdTime();
-        }
-
-        public void ReceiveHeartBeat()
-        {
-            this.mUDPLikeTCPMgr.ReceiveHeartBeat();
-        }
-
-        public void ReceiveConnect(sk_buff skb)
-        {
-            this.mUDPLikeTCPMgr.ReceiveConnect(skb);
-        }
-
-        public void ReceiveDisConnect()
-        {
-            this.mUDPLikeTCPMgr.ReceiveDisConnect();
+            ResetSendHeartBeatCdTime();
+            WriteToSendBuffer(skb.GetSendBuffer());
         }
 
         public ObjectPoolManager GetObjectPoolManager()
@@ -208,7 +233,5 @@ namespace AKNet.LinuxTcp.Server
         }
         public void SetOwner(object owner) { this.Owner = owner; }
         public object GetOwner() { return this.Owner; }
-        public void SendNetData(byte[] data) { SendNetData(0, data); }
-        public void SendNetData(ReadOnlySpan<byte> data) { SendNetData(0, data); }
     }
 }

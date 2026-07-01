@@ -1,10 +1,10 @@
-﻿/************************************Copyright*****************************************
+/************************************Copyright*****************************************
 *        ProjectName:AKNet
 *        Web:https://github.com/825126369/AKNet
 *        Description:C#游戏网络库
 *        Author:许珂
 *        StartTime:2024/11/01 00:00:00
-*        ModifyTime:2026/2/1 20:27:09
+*        ModifyTime:2026/2/1 20:27:10
 *        Copyright:MIT软件许可证
 ************************************Copyright*****************************************/
 using AKNet.Common;
@@ -12,19 +12,15 @@ using System.Collections.Generic;
 
 namespace AKNet.LinuxTcp.Server
 {
-    internal class ClientPeerMgr
-	{
-        private UdpServer mNetServer = null;
-        private readonly Queue<FakeSocket> mConnectSocketQueue = new Queue<FakeSocket>();
-        private readonly List<ClientPeerWrap> mClientList = new List<ClientPeerWrap>();
-
-        public ClientPeerMgr(UdpServer mNetServer)
-        {
-            this.mNetServer = mNetServer;
-        }
-
+    internal partial class NetServerMain
+    {
         public void Update(double elapsed)
         {
+            if (elapsed >= 0.3)
+            {
+                NetLog.LogWarning("NetServer 帧 时间 太长: " + elapsed);
+            }
+
             while (CreateClientPeer())
             {
 
@@ -32,7 +28,7 @@ namespace AKNet.LinuxTcp.Server
 
             for (int i = mClientList.Count - 1; i >= 0; i--)
             {
-                var mClientPeer = mClientList[i];
+                ClientPeerWrap mClientPeer = mClientList[i];
                 if (mClientPeer.GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
                 {
                     mClientPeer.Update(elapsed);
@@ -44,6 +40,16 @@ namespace AKNet.LinuxTcp.Server
                     mClientPeer.Reset();
                 }
             }
+        }
+
+        FrameUpdateFunc mFrameUpdateFunc = null;
+        public void Update()
+        {
+            if (mFrameUpdateFunc == null)
+            {
+                mFrameUpdateFunc = new FrameUpdateFunc();
+            }
+            mFrameUpdateFunc.Update(Update);
         }
 
         public void MultiThreadingHandleConnectedSocket(FakeSocket mSocket)
@@ -66,7 +72,7 @@ namespace AKNet.LinuxTcp.Server
 
             if (mSocket != null)
             {
-                ClientPeerWrap clientPeer = new ClientPeerWrap(mNetServer);
+                ClientPeerWrap clientPeer = new ClientPeerWrap(this);
                 clientPeer.HandleConnectedSocket(mSocket);
                 mClientList.Add(clientPeer);
                 PrintAddClientMsg(clientPeer);
@@ -104,6 +110,5 @@ namespace AKNet.LinuxTcp.Server
             }
 #endif
         }
-
     }
 }
