@@ -10,7 +10,7 @@
 using System;
 namespace AKNet.Common
 {
-    public interface NetServerInterface
+    public interface NetServerInterface : IDisposable
     {
         void InitNet();
         void InitNet(int nPort);
@@ -19,7 +19,6 @@ namespace AKNet.Common
         SOCKET_SERVER_STATE GetServerState();
         void Update(double elapsed);
         void Update();
-        void Release();
 
 
 

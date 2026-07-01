@@ -11,14 +11,13 @@ using System;
 using System.Net;
 namespace AKNet.Common
 {
-    public interface NetClientInterface
+    public interface NetClientInterface:IDisposable
     {
         void ConnectServer(string Ip, int nPort);
         bool DisConnectServer();
         void ReConnectServer();
         void Update(double elapsed);
         void Update();
-        void Release();
         
         void addNetListenFunc(ushort nPackageId, Action<ClientPeerBase, NetPackage> mFunc);
         void removeNetListenFunc(ushort nPackageId, Action<ClientPeerBase, NetPackage> mFunc);
