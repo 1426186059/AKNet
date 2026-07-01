@@ -10,6 +10,9 @@ namespace TestNetServer
 {
     public abstract class QuicTestServerBase
     {
+        private bool bCheck_CheckIsClientPeerWrap_1 = false;
+        private bool bCheck_CheckIsClientPeerWrap_2 = false;
+
         QuicServerMainBase mNetServer = null;
         private readonly List<QuicClientPeerBase> mClientPeerList = new List<QuicClientPeerBase>();
         const int NetCommand_COMMAND_TESTCHAT = 1000;
@@ -42,7 +45,11 @@ namespace TestNetServer
 
         private void OnClientPeerStateChanged(QuicClientPeerBase peer, SOCKET_PEER_STATE state)
         {
-            CheckIsClientPeerWrap(peer);
+            if (!bCheck_CheckIsClientPeerWrap_1)
+            {
+                bCheck_CheckIsClientPeerWrap_1 = true;
+                CheckIsClientPeerWrap(peer);
+            }
 
             if (state == SOCKET_PEER_STATE.CONNECTED)
             {
@@ -87,7 +94,12 @@ namespace TestNetServer
 
         private void ReceiveChatMessage(QuicClientPeerBase peer, QuicNetPackage mPackage)
         {
-            CheckIsClientPeerWrap(peer);
+            if (!bCheck_CheckIsClientPeerWrap_2)
+            {
+                bCheck_CheckIsClientPeerWrap_2 = true;
+                CheckIsClientPeerWrap(peer);
+            }
+
             TESTChatMessage mdata = Proto3Tool.GetData<TESTChatMessage>(mPackage);
             nReceivePackageCount++;
             for (byte i = 1; i <= nSingleClientStreamCount; i++)

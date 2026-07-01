@@ -1,7 +1,5 @@
 ﻿using AKNet.Common;
 using AKNet.Extentions.Protobuf;
-using System;
-using System.Collections.Generic;
 using TestCommon;
 using TestProtocol;
 
@@ -9,6 +7,10 @@ namespace TestNetServer
 {
     public abstract class NetTestServerBase
     {
+        private bool bCheck_CheckIsClientPeerWrap_1 = false;
+        private bool bCheck_CheckIsClientPeerWrap_2 = false;
+        private bool bCheck_CheckIsClientPeerWrap_3 = false;
+
         NetServerMainBase mNetServer = null;
         private readonly List<ClientPeerBase> mClientPeerList = new List<ClientPeerBase>();
         const int NetCommand_COMMAND_TESTCHAT = 1000;
@@ -40,10 +42,14 @@ namespace TestNetServer
                 throw new InvalidOperationException($"Server期望ClientPeerWrap类型，实际收到: {peer.GetType().FullName}");
             }
         }
-
+        
         private void OnClientPeerStateChanged(ClientPeerBase peer, SOCKET_PEER_STATE state)
         {
-            CheckIsClientPeerWrap(peer);
+            if (!bCheck_CheckIsClientPeerWrap_1)
+            {
+                bCheck_CheckIsClientPeerWrap_1 = true;
+                CheckIsClientPeerWrap(peer);
+            }
 
             if (state == SOCKET_PEER_STATE.CONNECTED)
             {
@@ -88,14 +94,24 @@ namespace TestNetServer
 
         private void ReceiveMessage(ClientPeerBase peer, NetPackage mPackage)
         {
-            CheckIsClientPeerWrap(peer);
+            if (!bCheck_CheckIsClientPeerWrap_2)
+            {
+                bCheck_CheckIsClientPeerWrap_2 = true;
+                CheckIsClientPeerWrap(peer);
+            }
+
             TESTChatMessage mdata = Proto3Tool.GetData<TESTChatMessage>(mPackage);
             peer.SendNetData(NetCommand_COMMAND_TESTCHAT, mdata);
         }
 
         private void ReceiveSpacebarMessage(ClientPeerBase peer, NetPackage mPackage)
         {
-            CheckIsClientPeerWrap(peer);
+            if (!bCheck_CheckIsClientPeerWrap_3)
+            {
+                bCheck_CheckIsClientPeerWrap_3 = true;
+                CheckIsClientPeerWrap(peer);
+            }
+
             TESTChatMessage mdata = Proto3Tool.GetData<TESTChatMessage>(mPackage);
             NetLog.Log($"[服务器收到空格消息] ClientId={mdata.NClientId}, SortId={mdata.NSortId}, TalkMsg={mdata.TalkMsg}");
         }
