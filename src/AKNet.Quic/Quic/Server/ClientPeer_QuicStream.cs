@@ -81,7 +81,7 @@ namespace AKNet.Quic.Server
                 }
                 else
                 {
-                    mServerMgr.mPackageManager.NetPackageExecute(this.mClientPeer, mServerMgr.mNetPackage);
+                    mServerMgr.mPackageManager.NetPackageExecute(this.mClientPeer.GetWrap(), mServerMgr.mNetPackage);
                 }
             }
 

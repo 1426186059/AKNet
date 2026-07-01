@@ -26,6 +26,7 @@ namespace AKNet.MSQuic.Server
 		private string Name = string.Empty;
         private uint ID = 0;
         private object Owner = null;
+        private ClientPeerWrap mWrap;
         
         internal QuicConnection mQuicConnection;
         private readonly Dictionary<byte, ClientPeerQuicStream> mSendStreamEnumDic = new Dictionary<byte, ClientPeerQuicStream>();
@@ -37,6 +38,13 @@ namespace AKNet.MSQuic.Server
 			this.mServerMgr = mNetServer;
             ResetSocketState();
         }
+
+        public void SetWrap(ClientPeerWrap mWrap)
+        {
+            this.mWrap = mWrap;
+        }
+
+        internal ClientPeerWrap GetWrap() { return mWrap; }
 
 		public void Update(double elapsed)
 		{
@@ -130,7 +138,7 @@ namespace AKNet.MSQuic.Server
             if (this.mSocketPeerState != this.mLastSocketPeerState)
             {
                 this.mLastSocketPeerState = mSocketPeerState;
-                mServerMgr.OnSocketStateChanged(this);
+                mServerMgr.OnSocketStateChanged(mWrap);
             }
         }
 
@@ -150,6 +158,7 @@ namespace AKNet.MSQuic.Server
 			this.ID = 0;
             fSendHeartBeatTime = 0.0;
             fReceiveHeartBeatTime = 0.0;
+            mWrap = null;
         }
 
         public void Dispose()

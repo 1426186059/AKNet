@@ -23,10 +23,11 @@ namespace AKNet.LinuxTcp.Server
 
         private readonly ObjectPoolManager mObjectPoolManager;
         internal UdpCheckMgr mUdpCheckPool = null;
-		internal UDPLikeTCPMgr mUDPLikeTCPMgr = null;
+        internal UDPLikeTCPMgr mUDPLikeTCPMgr = null;
         private SOCKET_PEER_STATE mSocketPeerState;
         private SOCKET_PEER_STATE mLastSocketPeerState;
         private UdpServer mNetServer;
+        private ClientPeerWrap mWrap;
         private string Name = string.Empty;
         private uint ID = 0;
         private object Owner = null;
@@ -42,6 +43,11 @@ namespace AKNet.LinuxTcp.Server
 
             mObjectPoolManager = new ObjectPoolManager();
             ResetSocketState();
+        }
+
+        public void SetWrap(ClientPeerWrap mWrap)
+        {
+            this.mWrap = mWrap;
         }
 
         public void Update(double elapsed)
@@ -70,7 +76,7 @@ namespace AKNet.LinuxTcp.Server
             if (this.mSocketPeerState != this.mLastSocketPeerState)
             {
                 this.mLastSocketPeerState = mSocketPeerState;
-                mNetServer.OnSocketStateChanged(this);
+                mNetServer.OnSocketStateChanged(mWrap);
             }
         }
 
@@ -91,6 +97,7 @@ namespace AKNet.LinuxTcp.Server
             mSocketMgr.Reset();
             this.Name = string.Empty;
             this.ID = 0;
+            mWrap = null;
         }
 
         public void Dispose()
@@ -177,7 +184,7 @@ namespace AKNet.LinuxTcp.Server
 
         public void NetPackageExecute(NetPackage mPackage)
         {
-            mNetServer.GetPackageManager().NetPackageExecute(this, mPackage);
+            mNetServer.GetPackageManager().NetPackageExecute(mWrap, mPackage);
         }
 
         public void SetName(string name)
