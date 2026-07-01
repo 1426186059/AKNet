@@ -1,6 +1,6 @@
 # AKNet
 
-一个高性能 C# 网络库，核心目标是实现超越 TCP 的可靠有序 UDP 算法。支持 TCP / UDP / WebSocket / QUIC，协议间可无缝切换，服务端和客户端共用一套接口。
+一个高性能 C# 网络库，核心目标是实现超越 TCP 的可靠有序 UDP 算法。支持 TCP / UDP / WebSocket / QUIC，协议间可无缝切换，兼容 **Unity** 与 **.NET 8.0+**，服务端和客户端共用一套接口。
 
 > **注意**：原 AKNet 仓库（[https://github.com/825126369/AKNet](https://github.com/825126369/AKNet)）已不再维护，此仓库为最新地址。
 
