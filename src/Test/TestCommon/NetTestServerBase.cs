@@ -55,13 +55,13 @@ namespace TestNetServer
                 var key = Console.ReadKey(true);
                 if (key.Key == ConsoleKey.Delete)
                 {
-                    if (mClientPeerList.Count > 0)
-                    {
-                        var peer = mClientPeerList[0];
-                        NetLog.Log($"Delete键按下，Dispose客户端: {peer.GetIPEndPoint()}");
-                        peer.Dispose();
-                        mClientPeerList.RemoveAt(0);
-                    }
+                if (mClientPeerList.Count > 0)
+                {
+                    var peer = mClientPeerList[0];
+                    NetLog.Log($"Delete键按下，Dispose客户端: {peer.GetIPEndPoint()}");
+                    mClientPeerList.RemoveAt(0);  // 先移除再Dispose，避免Dispose触发断开回调导致空列表
+                    peer.Dispose();
+                }
                     else
                     {
                         NetLog.Log("Delete键按下，但没有已连接的客户端");
