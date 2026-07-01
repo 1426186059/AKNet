@@ -218,7 +218,7 @@ namespace AKNet.LinuxTcp.Client
         {
             DisConnectServer();
             CloseSocket();
-            mUdpCheckPool.Dispose();
+            mUdpCheckPool.Reset();
 
             lock (mWaitCheckPackageQueue)
             {

@@ -42,6 +42,11 @@ namespace AKNet.Udp4Tcp.Server
             ResetSocketState();
         }
 
+        public void SetWrap(ClientPeerWrap mWrap)
+        {
+            this.mWrap = mWrap;
+        }
+
         public void Update(double elapsed)
         {
             switch (mSocketPeerState)
@@ -86,7 +91,7 @@ namespace AKNet.Udp4Tcp.Server
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void SetSocketState(SOCKET_PEER_STATE mState)
+        internal void SetSocketState(SOCKET_PEER_STATE mState)
         {
             NetLog.Assert(mState == SOCKET_PEER_STATE.CONNECTED || mState == SOCKET_PEER_STATE.DISCONNECTED);
             this.mSocketPeerState = mState;

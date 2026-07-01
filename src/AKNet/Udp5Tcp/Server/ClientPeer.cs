@@ -33,6 +33,7 @@ namespace AKNet.Udp5Tcp.Server
         private readonly Memory<byte> ReceiveArgs = new byte[Config.nUdpPackageFixedSize];
         private readonly Memory<byte> SendArgs = new byte[Config.nUdpPackageFixedSize];
         private bool bSendIOContexUsed = false;
+        private ClientPeerWrap mWrap;
 
         public ClientPeer(NetServerMain mNetServer)
         {
@@ -90,7 +91,7 @@ namespace AKNet.Udp5Tcp.Server
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void SetSocketState(SOCKET_PEER_STATE mState)
+        internal void SetSocketState(SOCKET_PEER_STATE mState)
         {
             NetLog.Assert(mState == SOCKET_PEER_STATE.CONNECTED || mState == SOCKET_PEER_STATE.DISCONNECTED);
             this.mSocketPeerState = mState;

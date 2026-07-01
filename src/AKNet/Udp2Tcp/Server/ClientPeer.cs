@@ -47,6 +47,11 @@ namespace AKNet.Udp2Tcp.Server
             ResetSocketState();
         }
 
+        public void SetWrap(ClientPeerWrap mWrap)
+        {
+            this.mWrap = mWrap;
+        }
+
         public void Update(double elapsed)
         {
             while (GetReceiveCheckPackage())

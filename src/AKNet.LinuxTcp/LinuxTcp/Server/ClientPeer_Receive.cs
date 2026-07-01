@@ -42,7 +42,7 @@ namespace AKNet.LinuxTcp.Server
         private bool NetTcpPackageExecute()
         {
             var mNetPackage = mNetServer.GetLikeTcpNetPackage();
-            bool bSuccess = mNetServer.mCryptoMgr.Decode(mReceiveStreamList, mNetPackage);
+            bool bSuccess = mNetServer.GetCryptoMgr().Decode(mReceiveStreamList, mNetPackage);
             if (bSuccess)
             {
                 NetPackageExecute(mNetPackage);

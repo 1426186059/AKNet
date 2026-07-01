@@ -39,7 +39,7 @@ namespace AKNet.LinuxTcp.Server
         {
             if (GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
             {
-                ReadOnlySpan<byte> mData = mNetServer.mCryptoMgr.Encode(nPackageId, data);
+                ReadOnlySpan<byte> mData = mNetServer.GetCryptoMgr().Encode(nPackageId, data);
                 mUdpCheckPool.SendTcpStream(mData);
             }
         }
