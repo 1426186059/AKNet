@@ -41,7 +41,7 @@ namespace AKNet.LinuxTcp.Client
             this.Reset();
             mUdpCheckPool.InitConnect();
             SetSocketState(SOCKET_PEER_STATE.CONNECTING);
-            NetLog.Log("Client: Udp 正在连接服务器: " + remoteEndPoint);
+            NetLog.Log("LinuxTcp Client: Udp 正在连接服务器: " + remoteEndPoint);
             SendInnerNetData(UdpNetCommand.COMMAND_CONNECT);
         }
 
@@ -55,7 +55,7 @@ namespace AKNet.LinuxTcp.Client
 
             this.Reset();
             SetSocketState(SOCKET_PEER_STATE.DISCONNECTING);
-            NetLog.Log("Client: Udp 正在 断开服务器: " + remoteEndPoint);
+            NetLog.Log("LinuxTcp Client: Udp 正在 断开服务器: " + remoteEndPoint);
             SendInnerNetData(UdpNetCommand.COMMAND_DISCONNECT);
         }
 
@@ -72,7 +72,7 @@ namespace AKNet.LinuxTcp.Client
                 this.Reset();
                 mUdpCheckPool.FinishConnect(skb);
                 SetSocketState(SOCKET_PEER_STATE.CONNECTED);
-                NetLog.Log("Client: Udp连接服务器 成功 ! ");
+                NetLog.Log("LinuxTcp Client: Udp连接服务器 成功 ! ");
             }
         }
 
@@ -88,7 +88,7 @@ namespace AKNet.LinuxTcp.Client
 
                 this.Reset();
                 SetSocketState(SOCKET_PEER_STATE.DISCONNECTED);
-                NetLog.Log("Client: Udp 断开服务器 成功 ! ");
+                NetLog.Log("LinuxTcp Client: Udp 断开服务器 成功 ! ");
             }
         }
     }

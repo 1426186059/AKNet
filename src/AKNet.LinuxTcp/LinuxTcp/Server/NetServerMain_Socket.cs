@@ -62,7 +62,7 @@ namespace AKNet.LinuxTcp.Server
                 EndPoint bindEndPoint = new IPEndPoint(mIPAddress, nPort);
                 mSocket.Bind(bindEndPoint);
 
-                NetLog.Log("Udp Server 初始化成功:  " + mIPAddress + " | " + nPort);
+                NetLog.Log("LinuxTcp Server 初始化成功:  " + mIPAddress + " | " + nPort);
                 StartReceiveFromAsync();
             }
             catch (SocketException ex)
