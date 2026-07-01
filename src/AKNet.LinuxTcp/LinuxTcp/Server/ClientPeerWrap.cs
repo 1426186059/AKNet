@@ -115,22 +115,22 @@ namespace AKNet.LinuxTcp.Server
         
         public void SetName(string name)
         {
-            mInstance.SetName(name);
+            if (mInstance != null) mInstance.SetName(name);
         }
 
         public string GetName()
         {
-            return mInstance.GetName();
+            return mInstance != null ? mInstance.GetName() : string.Empty;
         }
 
         public void SetID(uint id)
         {
-            mInstance.SetID(id);
+            if (mInstance != null) mInstance.SetID(id);
         }
 
         public uint GetID()
         {
-            return mInstance.GetID();
+            return mInstance != null ? mInstance.GetID() : 0;
         }
         public void SetOwner(object owner) { if (mInstance != null) mInstance.SetOwner(owner); }
         public object GetOwner() { return mInstance != null ? mInstance.GetOwner() : null; }

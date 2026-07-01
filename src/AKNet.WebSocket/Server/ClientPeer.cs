@@ -84,7 +84,7 @@ namespace AKNet.WebSocket.Server
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void ReceiveHeartBeat() { fReceiveHeartBeatTime = 0.0; }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void SetSocketState(SOCKET_PEER_STATE mState)
+        public void SetSocketState(SOCKET_PEER_STATE mState)
         {
             NetLog.Assert(mState == SOCKET_PEER_STATE.CONNECTED || mState == SOCKET_PEER_STATE.DISCONNECTED);
             this.mSocketPeerState = mState;
