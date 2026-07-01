@@ -19,9 +19,8 @@ namespace githubExample
                 Thread.Sleep(1);
             }
 
-            // 程序退出时清理资源
-            // mClient.Dispose();
-            // mServer.Dispose();
+            mClient.Dispose();
+            mServer.Dispose();
         }
     }
 }
