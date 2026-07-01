@@ -108,7 +108,7 @@ namespace AKNet.Udp5Tcp.Server
             if (this.mSocketPeerState != this.mLastSocketPeerState)
             {
                 this.mLastSocketPeerState = mSocketPeerState;
-                mServerMgr.OnSocketStateChanged(this);
+                mServerMgr.OnSocketStateChanged(mWrap);
             }
         }
 

@@ -24,6 +24,7 @@ namespace AKNet.WebSocket.Server
         private string mName = string.Empty;
         private uint mID = 0;
         private object mOwner = null;
+        private ClientPeerWrap mWrap;
 
 
         private readonly AkCircularBuffer mSendStreamList = new AkCircularBuffer();
@@ -34,6 +35,11 @@ namespace AKNet.WebSocket.Server
         {
             this.mServerMgr = mServerMgr;
             ResetSocketState();
+        }
+
+        public void SetWrap(ClientPeerWrap mWrap)
+        {
+            this.mWrap = mWrap;
         }
 
         public void Update(double elapsed)
@@ -78,7 +84,7 @@ namespace AKNet.WebSocket.Server
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void ReceiveHeartBeat() { fReceiveHeartBeatTime = 0.0; }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void SetSocketState(SOCKET_PEER_STATE mState)
+        internal void SetSocketState(SOCKET_PEER_STATE mState)
         {
             NetLog.Assert(mState == SOCKET_PEER_STATE.CONNECTED || mState == SOCKET_PEER_STATE.DISCONNECTED);
             this.mSocketPeerState = mState;
@@ -91,7 +97,7 @@ namespace AKNet.WebSocket.Server
             if (this.mSocketPeerState != this.mLastSocketPeerState)
             {
                 this.mLastSocketPeerState = mSocketPeerState;
-                mServerMgr.OnSocketStateChanged(this);
+                mServerMgr.OnSocketStateChanged(mWrap);
             }
         }
 

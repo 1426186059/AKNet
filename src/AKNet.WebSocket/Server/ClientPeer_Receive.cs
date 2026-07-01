@@ -60,7 +60,7 @@ namespace AKNet.WebSocket.Server
             bool bSuccess = false;
             lock (mReceiveStreamList) { bSuccess = mServerMgr.mCryptoMgr.Decode(mReceiveStreamList, mNetPackage); }
             if (bSuccess && !CommonTcpLayerNetCommand.orInnerCommand(mNetPackage.nPackageId))
-                mServerMgr.mPackageManager.NetPackageExecute(this, mNetPackage);
+                mServerMgr.mPackageManager.NetPackageExecute(mWrap, mNetPackage);
             return bSuccess;
         }
     }
