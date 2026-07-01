@@ -33,6 +33,7 @@ namespace AKNet.Udp4Tcp.Server
         private readonly Memory<byte> ReceiveArgs = new byte[Config.nUdpPackageFixedSize];
         private readonly Memory<byte> SendArgs = new byte[Config.nUdpPackageFixedSize];
         private bool bSendIOContexUsed = false;
+        private ClientPeerWrap mWrap;
 
         public ClientPeer(NetServerMain mNetServer)
         {
@@ -102,7 +103,7 @@ namespace AKNet.Udp4Tcp.Server
             if (this.mSocketPeerState != this.mLastSocketPeerState)
             {
                 this.mLastSocketPeerState = mSocketPeerState;
-                mServerMgr.OnSocketStateChanged(this);
+                mServerMgr.OnSocketStateChanged(mWrap);
             }
         }
 
@@ -152,6 +153,7 @@ namespace AKNet.Udp4Tcp.Server
             fReceiveHeartBeatTime = 0.0;
             this.Name = string.Empty;
             this.ID = 0;
+            mWrap = null;
         }
 
         public void Dispose()

@@ -38,6 +38,7 @@ namespace AKNet.Udp1Tcp.Server
         bool bSendIOContexUsed = false;
 
         IPEndPoint mIPEndPoint;
+        private ClientPeerWrap mWrap;
 
         public ClientPeer(NetServerMain mNetServer)
         {
@@ -57,6 +58,11 @@ namespace AKNet.Udp1Tcp.Server
             }
 
             ResetSocketState();
+        }
+
+        public void SetWrap(ClientPeerWrap mWrap)
+        {
+            this.mWrap = mWrap;
         }
 
         public void Update(double elapsed)
@@ -117,7 +123,7 @@ namespace AKNet.Udp1Tcp.Server
             if (this.mSocketPeerState != this.mLastSocketPeerState)
             {
                 this.mLastSocketPeerState = mSocketPeerState;
-                mServerMgr.OnSocketStateChanged(this);
+                mServerMgr.OnSocketStateChanged(mWrap);
             }
         }
 
@@ -291,7 +297,7 @@ namespace AKNet.Udp1Tcp.Server
 
         public void NetPackageExecute(NetPackage mPackage)
         {
-            mServerMgr.GetPackageManager().NetPackageExecute(this, mPackage);
+            mServerMgr.GetPackageManager().NetPackageExecute(mWrap, mPackage);
         }
     }
 }

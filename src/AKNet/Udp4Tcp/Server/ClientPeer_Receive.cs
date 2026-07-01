@@ -39,7 +39,7 @@ namespace AKNet.Udp4Tcp.Server
                 }
                 else
                 {
-                    mServerMgr.GetPackageManager().NetPackageExecute(this, mNetStreamPackage);
+                    mServerMgr.GetPackageManager().NetPackageExecute(mWrap, mNetStreamPackage);
                 }
             }
 

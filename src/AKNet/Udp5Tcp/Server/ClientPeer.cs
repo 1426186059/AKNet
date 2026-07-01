@@ -41,6 +41,11 @@ namespace AKNet.Udp5Tcp.Server
             ResetSocketState();
         }
 
+        public void SetWrap(ClientPeerWrap mWrap)
+        {
+            this.mWrap = mWrap;
+        }
+
         public void Update(double elapsed)
         {
             switch (mSocketPeerState)
@@ -152,6 +157,7 @@ namespace AKNet.Udp5Tcp.Server
             fReceiveHeartBeatTime = 0.0;
             this.Name = string.Empty;
             this.ID = 0;
+            mWrap = null;
         }
 
         public void Dispose()

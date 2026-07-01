@@ -35,6 +35,7 @@ namespace AKNet.Udp2Tcp.Server
         bool bSendIOContexUsed = false;
 
         private readonly NetStreamCircularBuffer mReceiveStreamList = new NetStreamCircularBuffer();
+        private ClientPeerWrap mWrap;
 
         public ClientPeer(NetServerMain mNetServer)
         {
@@ -107,7 +108,7 @@ namespace AKNet.Udp2Tcp.Server
             if (this.mSocketPeerState != this.mLastSocketPeerState)
             {
                 this.mLastSocketPeerState = mSocketPeerState;
-                mServerMgr.OnSocketStateChanged(this);
+                mServerMgr.OnSocketStateChanged(mWrap);
             }
         }
 
@@ -161,6 +162,7 @@ namespace AKNet.Udp2Tcp.Server
             this.fReceiveHeartBeatTime = 0;
             this.fMySendHeartBeatCdTime = 0;
             this.bSendIOContexUsed = false;
+            mWrap = null;
         }
 
         public void Dispose()
@@ -244,7 +246,7 @@ namespace AKNet.Udp2Tcp.Server
 
         public void NetPackageExecute(NetPackage mPackage)
         {
-            mServerMgr.GetPackageManager().NetPackageExecute(this, mPackage);
+            mServerMgr.GetPackageManager().NetPackageExecute(mWrap, mPackage);
         }
     }
 }

@@ -34,7 +34,14 @@ namespace AKNet.Udp3Tcp.Server
             }
         }
 
-        public void Dispose() { Reset(); }
+        public void Dispose() 
+        { 
+            if(mInstance != null)
+            {
+                mInstance.SetSocketState(SOCKET_PEER_STATE.DISCONNECTED);
+                Reset();
+            }
+        }
 
         public SOCKET_PEER_STATE GetSocketState()
 		{

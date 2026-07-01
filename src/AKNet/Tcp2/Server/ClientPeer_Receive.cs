@@ -29,7 +29,7 @@ namespace AKNet.Tcp2.Server
                 }
                 else
                 {
-                    mServerMgr.mPackageManager.NetPackageExecute(this, mNetPackage);
+                    mServerMgr.mPackageManager.NetPackageExecute(mWrap, mNetPackage);
                 }
             }
 

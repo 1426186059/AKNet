@@ -33,6 +33,7 @@ namespace AKNet.Tcp.Server
         private Socket mSocket = null;
         private bool bSendIOContextUsed = false;
         private bool bStreamsDirty = false;
+        private ClientPeerWrap mWrap;
 
         public ClientPeer(NetServerMain mServerMgr)
 		{
@@ -45,6 +46,11 @@ namespace AKNet.Tcp.Server
             bSendIOContextUsed = false;
 
             ResetSocketState();
+        }
+
+        public void SetWrap(ClientPeerWrap mWrap)
+        {
+            this.mWrap = mWrap;
         }
 
 		public void Update(double elapsed)
@@ -108,7 +114,7 @@ namespace AKNet.Tcp.Server
 		}
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void SetSocketState(SOCKET_PEER_STATE mState)
+        public void SetSocketState(SOCKET_PEER_STATE mState)
         {
             NetLog.Assert(mState == SOCKET_PEER_STATE.CONNECTED || mState == SOCKET_PEER_STATE.DISCONNECTED);
             this.mSocketPeerState = mState;
@@ -125,7 +131,7 @@ namespace AKNet.Tcp.Server
             if (this.mSocketPeerState != this.mLastSocketPeerState)
             {
                 this.mLastSocketPeerState = mSocketPeerState;
-                mServerMgr.OnSocketStateChanged(this);
+                mServerMgr.OnSocketStateChanged(mWrap);
             }
         }
 
@@ -148,6 +154,7 @@ namespace AKNet.Tcp.Server
             fReceiveHeartBeatTime = 0.0;
             this.Name = string.Empty;
 			this.ID = 0;
+            mWrap = null;
 		}
 
 		public void Dispose()

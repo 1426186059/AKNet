@@ -23,6 +23,7 @@ namespace AKNet.Tcp2.Server
         {
             this.mServerMgr = mNetServer;
             this.mInstance = mNetServer.mClientPeerPool.Pop();
+            this.mInstance.SetWrap(this);
         }
 
         public void Reset()
@@ -37,7 +38,11 @@ namespace AKNet.Tcp2.Server
 
         public void Dispose() 
         { 
-            
+            if(mInstance != null)
+            {
+                mInstance.SetSocketState(SOCKET_PEER_STATE.DISCONNECTED);
+                Reset();
+            }
         }
 
         public SOCKET_PEER_STATE GetSocketState()

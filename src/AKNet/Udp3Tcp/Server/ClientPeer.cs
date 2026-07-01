@@ -30,6 +30,7 @@ namespace AKNet.Udp3Tcp.Server
         private double fMySendHeartBeatCdTime = 0.0;
 
         private readonly NetStreamCircularBuffer mReceiveStreamList = new NetStreamCircularBuffer();
+        private ClientPeerWrap mWrap;
 
         private FakeSocket mSocket = null;
         private readonly SocketAsyncEventArgs SendArgs = new SocketAsyncEventArgs();
@@ -46,6 +47,11 @@ namespace AKNet.Udp3Tcp.Server
             mSendStreamList = new AkCircularManySpanBuffer(Config.nUdpPackageFixedSize);
 
             ResetSocketState();
+        }
+
+        public void SetWrap(ClientPeerWrap mWrap)
+        {
+            this.mWrap = mWrap;
         }
 
         public void Update(double elapsed)
@@ -104,7 +110,7 @@ namespace AKNet.Udp3Tcp.Server
             if (this.mSocketPeerState != this.mLastSocketPeerState)
             {
                 this.mLastSocketPeerState = mSocketPeerState;
-                mServerMgr.OnSocketStateChanged(this);
+                mServerMgr.OnSocketStateChanged(mWrap);
             }
         }
 
@@ -205,7 +211,7 @@ namespace AKNet.Udp3Tcp.Server
 
         public void NetPackageExecute(NetPackage mPackage)
         {
-            mServerMgr.GetPackageManager().NetPackageExecute(this, mPackage);
+            mServerMgr.GetPackageManager().NetPackageExecute(mWrap, mPackage);
         }
 
         public void SetName(string name)
