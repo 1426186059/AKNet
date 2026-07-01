@@ -91,7 +91,7 @@ namespace AKNet.Udp4Tcp.Server
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetSocketState(SOCKET_PEER_STATE mState)
+        internal void SetSocketState(SOCKET_PEER_STATE mState)
         {
             NetLog.Assert(mState == SOCKET_PEER_STATE.CONNECTED || mState == SOCKET_PEER_STATE.DISCONNECTED);
             this.mSocketPeerState = mState;
