@@ -12,9 +12,9 @@ namespace AKNet.Udp.Broadcast.Sender
 	public class BroadcastSender:ClientPeer
 	{
 
-		public override void Release()
+		public override void Dispose()
 		{
-			base.Release ();
+			base.Dispose ();
 		}
 	}
 }

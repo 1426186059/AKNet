@@ -38,7 +38,7 @@ namespace AKNet.Common
         public IPEndPoint GetIPEndPoint() { return mInterface.GetIPEndPoint(); }
         public SOCKET_PEER_STATE GetSocketState() { return mInterface.GetSocketState(); }
         public void ReConnectServer() { mInterface.ReConnectServer(); }
-        public void Release() { mInterface.Release(); }
+        public void Dispose() { mInterface.Dispose(); }
         public void removeListenClientPeerStateFunc(Action<ClientPeerBase, SOCKET_PEER_STATE> mFunc) { mInterface.removeListenClientPeerStateFunc(mFunc); }
         public void removeListenClientPeerStateFunc(Action<ClientPeerBase> mFunc) { mInterface.removeListenClientPeerStateFunc(mFunc); }
         public void removeNetListenFunc(ushort nPackageId, Action<ClientPeerBase, NetPackage> mFunc) { mInterface.removeNetListenFunc(nPackageId, mFunc); }

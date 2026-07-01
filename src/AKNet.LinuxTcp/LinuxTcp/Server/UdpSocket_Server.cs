@@ -173,7 +173,7 @@ namespace AKNet.LinuxTcp.Server
 			return !bIOSyncCompleted;
 		}
 
-        public void Release()
+        public void Dispose()
 		{
             if (mSocket != null)
             {

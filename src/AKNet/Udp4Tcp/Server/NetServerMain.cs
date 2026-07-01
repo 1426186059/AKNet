@@ -63,7 +63,7 @@ namespace AKNet.Udp4Tcp.Server
             return mPackageManager;
         }
 
-        public void Release()
+        public void Dispose()
         {
             CloseSocket();
         }

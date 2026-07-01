@@ -27,9 +27,17 @@ namespace AKNet.Tcp2.Server
 
         public void Reset()
         {
-            mServerMgr.mClientPeerPool.recycle(mInstance);
-            mServerMgr = null;
-            mInstance = null;
+            if (mInstance != null)
+            {
+                mServerMgr.mClientPeerPool.recycle(mInstance);
+                mServerMgr = null;
+                mInstance = null;
+            }
+        }
+
+        public void Dispose() 
+        { 
+            
         }
 
         public SOCKET_PEER_STATE GetSocketState()

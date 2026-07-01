@@ -117,7 +117,7 @@ namespace AKNet.WebSocket.Server
             this.mOwner = null;
         }
 
-        public void Release()
+        public void Dispose()
         {
             Reset();
 

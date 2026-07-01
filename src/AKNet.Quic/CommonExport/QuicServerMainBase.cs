@@ -47,9 +47,9 @@ namespace AKNet.Common
             mInterface.InitNet(Ip, nPort);
         }
 
-        public void Release()
+        public void Dispose()
         {
-            mInterface.Release();
+            mInterface.Dispose();
         }
 
         public void addListenClientPeerStateFunc(Action<QuicClientPeerBase, SOCKET_PEER_STATE> mFunc)

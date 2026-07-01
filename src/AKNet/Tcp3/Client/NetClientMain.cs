@@ -189,7 +189,7 @@ namespace AKNet.Tcp3.Client
             fReceiveHeartBeatTime = 0.0;
         }
 
-        public void Release()
+        public void Dispose()
         {
             Reset();
 

@@ -69,7 +69,7 @@ namespace AKNet.Tcp2.Server
             }
             else
             {
-                t.Release();
+                t.Dispose();
             }
         }
     }

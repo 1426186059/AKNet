@@ -26,10 +26,15 @@ namespace AKNet.Udp3Tcp.Server
 
         public void Reset()
         {
-            mNetServer.GetClientPeerPool().recycle(mInstance);
-            mNetServer = null;
-            mInstance = null;
+            if (mInstance != null)
+            {
+                mNetServer.GetClientPeerPool().recycle(mInstance);
+                mNetServer = null;
+                mInstance = null;
+            }
         }
+
+        public void Dispose() { Reset(); }
 
         public SOCKET_PEER_STATE GetSocketState()
 		{

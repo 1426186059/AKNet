@@ -70,7 +70,7 @@ namespace AKNet.LinuxTcp.Server
             }
             else
             {
-                t.Release();
+                t.Dispose();
             }
         }
     }

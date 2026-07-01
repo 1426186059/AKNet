@@ -93,13 +93,13 @@ namespace AKNet.LinuxTcp.Server
             this.ID = 0;
         }
 
-        public void Release()
+        public void Dispose()
         {
             OnSocketStateChanged();
             ResetSocketState();
 
-            mMsgReceiveMgr.Release();
-            mSocketMgr.Release();
+            mMsgReceiveMgr.Dispose();
+            mSocketMgr.Dispose();
         }
 
         public void CloseSocket()

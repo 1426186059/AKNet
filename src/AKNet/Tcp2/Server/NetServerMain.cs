@@ -62,7 +62,7 @@ namespace AKNet.Tcp2.Server
             mListenClientPeerStateMgr.removeListenClientPeerStateFunc(mFunc);
         }
 
-        public void Release()
+        public void Dispose()
         {
             CloseNet();
         }

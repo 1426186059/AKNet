@@ -87,7 +87,7 @@ namespace AKNet.Udp3Tcp.Server
             return mObjectPoolManager;
         }
 
-        public void Release()
+        public void Dispose()
         {
             CloseSocket();
         }

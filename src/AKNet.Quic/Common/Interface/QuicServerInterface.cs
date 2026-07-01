@@ -7,9 +7,10 @@
 *        ModifyTime:2026/2/1 20:27:02
 *        Copyright:MIT软件许可证
 ************************************Copyright*****************************************/
+using System;
 namespace AKNet.Common
 {
-    public interface QuicServerInterface
+    public interface QuicServerInterface : IDisposable
     {
         void InitNet();
         void InitNet(int nPort);
@@ -18,7 +19,6 @@ namespace AKNet.Common
         SOCKET_SERVER_STATE GetServerState();
         void Update(double elapsed);
         void Update();
-        void Release();
         
         void addNetListenFunc(ushort id, Action<QuicClientPeerBase, QuicNetPackage> mFunc);
         void removeNetListenFunc(ushort id, Action<QuicClientPeerBase, QuicNetPackage> mFunc);

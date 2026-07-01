@@ -11,9 +11,9 @@ namespace AKNet.Udp.Broadcast.Receiver
 {
     public class BroadcastReceiver : ClientPeer
 	{
-		public override void Release()
+		public override void Dispose()
 		{
-			base.Release();
+			base.Dispose();
 		}
 	}
 }

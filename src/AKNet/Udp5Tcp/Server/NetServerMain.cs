@@ -61,7 +61,7 @@ namespace AKNet.Udp5Tcp.Server
             return mPackageManager;
         }
 
-        public void Release()
+        public void Dispose()
         {
             CloseSocket();
         }

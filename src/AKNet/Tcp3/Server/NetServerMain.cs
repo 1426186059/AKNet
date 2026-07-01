@@ -61,7 +61,7 @@ namespace AKNet.Tcp3.Server
             mListenClientPeerStateMgr.removeListenClientPeerStateFunc(mFunc);
         }
 
-        public void Release()
+        public void Dispose()
         {
             CloseNet();
         }

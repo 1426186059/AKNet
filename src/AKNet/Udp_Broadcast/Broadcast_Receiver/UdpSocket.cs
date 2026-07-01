@@ -82,9 +82,9 @@ namespace AKNet.Udp.Broadcast.Receiver
             NetLog.Log("UDP 广播接收器: DisConnect");
 		}
 
-		public override void Release()
+		public override void Dispose()
 		{
-			base.Release();
+			base.Dispose();
 
 			if (mSocket != null)
 			{
@@ -97,7 +97,7 @@ namespace AKNet.Udp.Broadcast.Receiver
 
 		~UdpSockek_Basic()
 		{
-			Release();
+			Dispose();
 		}
 	}
 

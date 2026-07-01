@@ -74,7 +74,7 @@ namespace AKNet.LinuxTcp.Server
             mReceiveStreamList.Reset();
         }
 
-        public void Release()
+        public void Dispose()
         {
             mReceiveStreamList.Dispose();
         }

@@ -96,10 +96,10 @@ namespace AKNet.LinuxTcp.Client
             this.ID = 0;
         }
 
-        public void Release()
+        public void Dispose()
         {
-            mSocketMgr.Release();
-            mMsgReceiveMgr.Release();
+            mSocketMgr.Dispose();
+            mMsgReceiveMgr.Dispose();
             SetSocketState(SOCKET_PEER_STATE.DISCONNECTED);
         }
 

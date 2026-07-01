@@ -238,13 +238,13 @@ namespace AKNet.Udp1Tcp.Client
             this.ID = 0;
         }
 
-        public void Release()
+        public void Dispose()
         {
             DisConnectServer();
             CloseSocket();
 
             Reset();
-            mUdpCheckPool.Release();
+            mUdpCheckPool.Dispose();
             SetSocketState(SOCKET_PEER_STATE.DISCONNECTED);
         }
 

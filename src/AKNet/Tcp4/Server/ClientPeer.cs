@@ -144,7 +144,7 @@ namespace AKNet.Tcp4.Server
             this.ID = 0;
         }
 
-        public void Release()
+        public void Dispose()
         {
             Reset();
 

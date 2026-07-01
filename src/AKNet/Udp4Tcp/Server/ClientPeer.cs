@@ -154,7 +154,7 @@ namespace AKNet.Udp4Tcp.Server
             this.ID = 0;
         }
 
-        public void Release()
+        public void Dispose()
         {
             Reset();
 

@@ -271,7 +271,7 @@ namespace AKNet.LinuxTcp.Client
             }
         }
 
-        public void Release()
+        public void Dispose()
         {
             DisConnectServer();
             CloseSocket();

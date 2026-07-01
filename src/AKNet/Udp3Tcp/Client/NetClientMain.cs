@@ -205,12 +205,12 @@ namespace AKNet.Udp3Tcp.Client
             this.fMySendHeartBeatCdTime = 0.0;
         }
 
-        public void Release()
+        public void Dispose()
         {
             SetSocketState(SOCKET_PEER_STATE.DISCONNECTED);
             DisConnectServer();
             CloseSocket();
-            mUdpCheckPool.Release();
+            mUdpCheckPool.Dispose();
 
             lock (mWaitCheckPackageQueue)
             {

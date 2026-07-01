@@ -222,7 +222,7 @@ namespace AKNet.Udp2Tcp.Common
             nLastReceiveOrderId = 0;
         }
 
-        public void Release()
+        public void Dispose()
         {
 
         }

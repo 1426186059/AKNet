@@ -43,7 +43,7 @@ namespace AKNet.Udp.Broadcast.Sender
 			mSocket.Close();
 		}
 
-		public virtual void Release()
+		public virtual void Dispose()
 		{
 			this.CloseNet();
 			NetLog.Log("--------------- BroadcastSender  Release ----------------");

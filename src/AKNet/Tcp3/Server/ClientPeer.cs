@@ -153,7 +153,7 @@ namespace AKNet.Tcp3.Server
             this.ID = 0;
         }
 
-        public void Release()
+        public void Dispose()
         {
             Reset();
 

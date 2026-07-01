@@ -99,9 +99,9 @@ namespace AKNet.LinuxTcp.Server
             mSocketMgr.InitNet(Ip, nPort);
         }
 
-        public void Release()
+        public void Dispose()
         {
-            mSocketMgr.Release();
+            mSocketMgr.Dispose();
         }
 
         public SOCKET_SERVER_STATE GetServerState()

@@ -180,7 +180,7 @@ namespace AKNet.Udp4Tcp.Client
             this.fSendHeartBeatTime = 0.0;
         }
 
-        public void Release()
+        public void Dispose()
         {
             SetSocketState(SOCKET_PEER_STATE.DISCONNECTED);
             CloseSocket();

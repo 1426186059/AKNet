@@ -70,7 +70,7 @@ namespace AKNet.Udp5Tcp.Server
             }
             else
             {
-                t.Release();
+                t.Dispose();
             }
         }
     }

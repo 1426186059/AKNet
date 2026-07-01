@@ -324,7 +324,7 @@ namespace AKNet.Udp1Tcp.Common
             nCurrentWaitSendOrderId = Config.nUdpMinOrderId;
         }
 
-        public void Release()
+        public void Dispose()
         {
 
         }

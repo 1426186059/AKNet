@@ -68,7 +68,7 @@ namespace AKNet.Quic.Server
             }
             else
             {
-                t.Release();
+                t.Dispose();
             }
         }
     }

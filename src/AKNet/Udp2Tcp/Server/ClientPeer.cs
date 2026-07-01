@@ -163,7 +163,7 @@ namespace AKNet.Udp2Tcp.Server
             this.bSendIOContexUsed = false;
         }
 
-        public void Release()
+        public void Dispose()
         {
             Reset();
 

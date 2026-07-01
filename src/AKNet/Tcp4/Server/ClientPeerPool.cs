@@ -69,7 +69,7 @@ namespace AKNet.Tcp4.Server
             }
             else
             {
-                t.Release();
+                t.Dispose();
             }
         }
     }

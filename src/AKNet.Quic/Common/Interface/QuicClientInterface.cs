@@ -7,17 +7,17 @@
 *        ModifyTime:2026/2/1 20:27:02
 *        Copyright:MIT软件许可证
 ************************************Copyright*****************************************/
+using System;
 using System.Net;
 namespace AKNet.Common
 {
-    public interface QuicClientInterface
+    public interface QuicClientInterface : IDisposable
     {
         void ConnectServer(string Ip, int nPort);
         bool DisConnectServer();
         void ReConnectServer();
         void Update(double elapsed);
         void Update();
-        void Release();
         
         void addNetListenFunc(ushort nPackageId, Action<QuicClientPeerBase, QuicNetPackage> mFunc);
         void removeNetListenFunc(ushort nPackageId, Action<QuicClientPeerBase, QuicNetPackage> mFunc);

@@ -69,7 +69,7 @@ namespace AKNet.WebSocket.Server
             }
             else
             {
-                t.Release();
+                t.Dispose();
             }
         }
     }

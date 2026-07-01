@@ -52,7 +52,7 @@ namespace AKNet.MSQuic.Server
             t.Reset();
             bool bRecycle = nMaxCapacity <= 0 || mObjectPool.Count < nMaxCapacity;
             if (bRecycle) mObjectPool.Push(t);
-            else t.Release();
+            else t.Dispose();
         }
     }
 }

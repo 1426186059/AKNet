@@ -166,7 +166,7 @@ namespace AKNet.MSQuic.Client
 			return this.mSocketPeerState;
         }
 
-		public void Release()
+		public void Dispose()
 		{
             SetSocketState(SOCKET_PEER_STATE.DISCONNECTED);
             CloseSocket();

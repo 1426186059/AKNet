@@ -147,7 +147,7 @@ namespace AKNet.Udp1Tcp.Server
 			return bIOPending;
 		}
 
-		public void Release()
+		public void Dispose()
 		{
 			if (mSocket != null)
 			{

@@ -29,10 +29,15 @@ namespace AKNet.WebSocket.Server
 
         public void Reset()
         {
-            mServerMgr.mClientPeerPool.recycle(mInstance);
-            mServerMgr = null;
-            mInstance = null;
+            if (mInstance != null)
+            {
+                mServerMgr.mClientPeerPool.recycle(mInstance);
+                mServerMgr = null;
+                mInstance = null;
+            }
         }
+
+        public void Dispose() { Reset(); }
 
         public SOCKET_PEER_STATE GetSocketState()
         {

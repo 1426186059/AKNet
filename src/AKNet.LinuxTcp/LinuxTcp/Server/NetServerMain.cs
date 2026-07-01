@@ -41,9 +41,9 @@ namespace AKNet.LinuxTcp.Server
             mNetServer.InitNet(Ip, nPort);
         }
 
-        public void Release()
+        public void Dispose()
         {
-            mNetServer.Release();
+            mNetServer.Dispose();
         }
 
         public SOCKET_SERVER_STATE GetServerState()

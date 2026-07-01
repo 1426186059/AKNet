@@ -48,9 +48,9 @@ namespace AKNet.LinuxTcp.Client
              mNetClientPeer.ReConnectServer();
         }
 
-        public void Release()
+        public void Dispose()
         {
-            mNetClientPeer.Release();
+            mNetClientPeer.Dispose();
         }
 
         public void SendNetData(ushort nPackageId)

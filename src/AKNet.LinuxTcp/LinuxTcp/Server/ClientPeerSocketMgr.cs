@@ -165,7 +165,7 @@ namespace AKNet.LinuxTcp.Server
             }
         }
 
-        public void Release()
+        public void Dispose()
         {
             lock (mSendStreamList)
             {

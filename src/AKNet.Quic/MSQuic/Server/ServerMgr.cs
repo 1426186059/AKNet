@@ -37,7 +37,7 @@ namespace AKNet.MSQuic.Server
             mClientPeerPool = new ClientPeerPool(this, 0, 0);
         }
 
-        public void Release()
+        public void Dispose()
         {
             CloseNet();
         }

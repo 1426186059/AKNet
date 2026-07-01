@@ -122,7 +122,7 @@ namespace AKNet.Udp2Tcp.Server
             return mClientPeerPool;
         }
 
-        public void Release()
+        public void Dispose()
         {
             CloseSocket();
         }

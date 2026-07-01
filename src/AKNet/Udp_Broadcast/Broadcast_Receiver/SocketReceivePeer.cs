@@ -84,7 +84,7 @@ namespace AKNet.Udp.Broadcast.Receiver
 		}
 
 
-        public virtual void Release()
+        public virtual void Dispose()
         {
 			
         }

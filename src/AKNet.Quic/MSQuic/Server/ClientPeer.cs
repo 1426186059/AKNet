@@ -152,7 +152,7 @@ namespace AKNet.MSQuic.Server
             fReceiveHeartBeatTime = 0.0;
         }
 
-        public void Release()
+        public void Dispose()
         {
             Reset();
         }

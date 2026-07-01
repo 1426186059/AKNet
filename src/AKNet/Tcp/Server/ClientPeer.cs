@@ -150,7 +150,7 @@ namespace AKNet.Tcp.Server
 			this.ID = 0;
 		}
 
-		public void Release()
+		public void Dispose()
 		{
             Reset();
 
