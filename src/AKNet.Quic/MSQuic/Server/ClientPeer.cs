@@ -22,7 +22,7 @@ namespace AKNet.MSQuic.Server
         private double fSendHeartBeatTime = 0.0;
 		private double fReceiveHeartBeatTime = 0.0;
 		
-		private readonly ServerMgr mServerMgr;
+		private readonly NetServerMain mServerMgr;
 		private string Name = string.Empty;
         private uint ID = 0;
         private object Owner = null;
@@ -33,7 +33,7 @@ namespace AKNet.MSQuic.Server
         private readonly Dictionary<ulong, ClientPeerQuicStream> mAcceptStreamDic = new Dictionary<ulong, ClientPeerQuicStream>();
         private readonly Queue<ClientPeerQuicStream> mPendingAcceptStreamQueue = new Queue<ClientPeerQuicStream>();
 
-        public ClientPeer(ServerMgr mNetServer)
+        public ClientPeer(NetServerMain mNetServer)
 		{
 			this.mServerMgr = mNetServer;
             ResetSocketState();

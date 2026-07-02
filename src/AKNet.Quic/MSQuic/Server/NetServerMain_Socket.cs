@@ -1,22 +1,21 @@
-﻿/************************************Copyright*****************************************
+/************************************Copyright*****************************************
  *  Project    : AKNet
- *  Web        : https://github.com/1426186059/AKNet
+ *  Web        : https://github.com/825126369/AKNet
  *  Description: C# 游戏网络库
  *  Author     : 许珂
  *  Since      : 2024/11/01 00:00:00
- *  Updated    : 2026/07/02 18:05:45
+ *  Updated    : 2026/07/02 19:19:43
  *  Copyright  : 作者保留一切版权权利, 商业用途需支付版权费用
  *  Contact    : 微信：AAA-2025-666-888
 ************************************Copyright*****************************************/
 using AKNet.Common;
-using AKNet.Quic.Common;
+using AKNet.MSQuic.Common;
 using System.Net;
-using System.Net.Quic;
 using System.Net.Security;
 
-namespace AKNet.Quic.Server
+namespace AKNet.MSQuic.Server
 {
-    internal partial class ServerMgr
+    internal partial class NetServerMain
     {
         public void InitNet()
         {
@@ -52,21 +51,15 @@ namespace AKNet.Quic.Server
             InitNet(IPAddress.Parse(Ip), nPort);
         }
 
-        private async void InitNet(IPAddress mIPAddress, int nPort)
+        private void InitNet(IPAddress mIPAddress, int nPort)
         {
-            if (!QuicListener.IsSupported)
-            {
-                NetLog.LogError("QUIC is not supported.");
-                return;
-            }
-
             this.nPort = nPort;
             this.mState = SOCKET_SERVER_STATE.NORMAL;
 
             try
             {
                 var options = GetQuicListenerOptions(mIPAddress, nPort);
-                mQuicListener = await QuicListener.ListenAsync(options);
+                mQuicListener = QuicListener.StartListen(options);
                 NetLog.Log("服务器 初始化成功: " + mIPAddress + " | " + nPort);
                 StartProcessAccept();
             }
@@ -79,21 +72,15 @@ namespace AKNet.Quic.Server
 
         private QuicListenerOptions GetQuicListenerOptions(IPAddress mIPAddress, int nPort)
         {
-            var ApplicationProtocols = new List<SslApplicationProtocol>();
-            ApplicationProtocols.Add(SslApplicationProtocol.Http3);
-
             QuicListenerOptions mOption = new QuicListenerOptions();
             mOption.ListenEndPoint = new IPEndPoint(mIPAddress, nPort);
-            mOption.ApplicationProtocols = ApplicationProtocols;
-            mOption.ConnectionOptionsCallback = ConnectionOptionsCallback;
+            mOption.GetConnectionOptionFunc = ConnectionOptionsCallback;
             return mOption;
         }
 
-        private ValueTask<QuicServerConnectionOptions> ConnectionOptionsCallback(QuicConnection mQuicConnection, SslClientHelloInfo mSslClientHelloInfo, CancellationToken mCancellationToken)
+        private QuicConnectionOptions ConnectionOptionsCallback()
         {
-            var mCert = X509CertTool.GetQuicCert();
-
-            //mCert = X509CertificateLoader.LoadCertificateFromFile("D:\\Me\\OpenSource\\AKNet2\\cert.pfx");
+            var mCert = X509CertTool.GetPfxCert();
             NetLog.Assert(mCert != null, "GetCert() == null");
 
             var ApplicationProtocols = new List<SslApplicationProtocol>();
@@ -104,14 +91,10 @@ namespace AKNet.Quic.Server
             var ServerAuthenticationOptions = new SslServerAuthenticationOptions();
             ServerAuthenticationOptions.ApplicationProtocols = ApplicationProtocols;
             ServerAuthenticationOptions.ServerCertificate = mCert;
-            
-            QuicServerConnectionOptions mOption = new QuicServerConnectionOptions();
+
+            QuicConnectionOptions mOption = new QuicConnectionOptions();
             mOption.ServerAuthenticationOptions = ServerAuthenticationOptions;
-            mOption.DefaultCloseErrorCode = Config.DefaultCloseErrorCode;
-            mOption.DefaultStreamErrorCode = Config.DefaultStreamErrorCode;
-            mOption.MaxInboundBidirectionalStreams = byte.MaxValue;
-            mOption.MaxInboundUnidirectionalStreams = byte.MaxValue;
-            return ValueTask.FromResult(mOption);
+            return mOption;
         }
 
         private async void StartProcessAccept()
@@ -140,16 +123,15 @@ namespace AKNet.Quic.Server
             return mState;
         }
 
-        public async void CloseNet()
+        public void CloseNet()
         {
             MainThreadCheck.Check();
             if (mQuicListener != null)
             {
                 var mQuicListener2 = mQuicListener;
                 mQuicListener = null;
-                await mQuicListener2.DisposeAsync();
+                mQuicListener2.Close();
             }
         }
-
     }
 }

@@ -17,8 +17,8 @@ namespace AKNet.MSQuic.Server
     internal class ClientPeerWrap : QuicClientPeerBase
     {
         internal ClientPeer mInstance = null;
-        private ServerMgr mServerMgr;
-        public ClientPeerWrap(ServerMgr mNetServer)
+        private NetServerMain mServerMgr;
+        public ClientPeerWrap(NetServerMain mNetServer)
         {
             this.mServerMgr = mNetServer;
             this.mInstance = mNetServer.mClientPeerPool.Pop();

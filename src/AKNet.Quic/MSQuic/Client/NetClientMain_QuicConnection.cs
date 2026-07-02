@@ -1,10 +1,10 @@
-﻿/************************************Copyright*****************************************
+/************************************Copyright*****************************************
  *  Project    : AKNet
- *  Web        : https://github.com/1426186059/AKNet
+ *  Web        : https://github.com/825126369/AKNet
  *  Description: C# 游戏网络库
  *  Author     : 许珂
  *  Since      : 2024/11/01 00:00:00
- *  Updated    : 2026/07/02 18:05:45
+ *  Updated    : 2026/07/02 19:14:52
  *  Copyright  : 作者保留一切版权权利, 商业用途需支付版权费用
  *  Contact    : 微信：AAA-2025-666-888
 ************************************Copyright*****************************************/
@@ -15,7 +15,7 @@ using System.Net.Security;
 
 namespace AKNet.MSQuic.Client
 {
-    internal partial class ClientPeer
+    internal partial class NetClientMain
     {
 		public void ReConnectServer()
 		{

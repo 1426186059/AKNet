@@ -11,7 +11,7 @@
 using AKNet.Common;
 namespace AKNet.Quic.Client
 {
-    internal partial class ClientPeer
+    internal partial class NetClientMain
     {
         public void SendNetData(byte nStreamIndex, ushort nPackageId)
         {

@@ -14,7 +14,7 @@ using System.Net.Quic;
 
 namespace AKNet.Quic.Server
 {
-    internal partial class ServerMgr
+    internal partial class NetServerMain
     {
 		public void Update(double elapsed)
 		{

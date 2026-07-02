@@ -11,7 +11,7 @@
 using AKNet.Common;
 using AKNet.MSQuic.Common;
 
-namespace AKNet.MSQuic.Client
+namespace AKNet.MSQuic.Server
 {
     internal class ClientPeerQuicStream
     {
@@ -22,12 +22,14 @@ namespace AKNet.MSQuic.Client
         private readonly NetStreamCircularBuffer mReceiveStreamList = new NetStreamCircularBuffer();
         private bool bSendIOContextUsed = false;
 
+        private NetServerMain mServerMgr;
         private QuicStream mQuicStream;
         private ClientPeer mClientPeer;
         private readonly byte nStreamEnumIndex;
 
-        public ClientPeerQuicStream(ClientPeer mClientPeer, QuicStream mStream) //接收流
+        public ClientPeerQuicStream(NetServerMain mServerMgr, ClientPeer mClientPeer, QuicStream mStream)
         {
+            this.mServerMgr = mServerMgr;
             this.mClientPeer = mClientPeer;
             this.mQuicStream = mStream;
             this.nStreamEnumIndex = 0;
@@ -35,11 +37,12 @@ namespace AKNet.MSQuic.Client
             NetLog.Log($"New Accetp Stream: {mStream.Id}");
         }
 
-        public ClientPeerQuicStream(ClientPeer mClientPeer, byte nStreamEnumIndex) //发送流
+        public ClientPeerQuicStream(NetServerMain mServerMgr, ClientPeer mClientPeer, byte nStreamEnumIndex)
         {
+            this.mServerMgr = mServerMgr;
             this.mClientPeer = mClientPeer;
-            this.nStreamEnumIndex = nStreamEnumIndex;
             this.mQuicStream = null;
+            this.nStreamEnumIndex = nStreamEnumIndex;
 
             NetLog.Log($"New Send Stream: {nStreamEnumIndex}");
         }
@@ -47,6 +50,11 @@ namespace AKNet.MSQuic.Client
         public ulong GetStreamId()
         {
             return this.mQuicStream.Id;
+        }
+
+        public byte GetStreamEnumIndex()
+        {
+            return nStreamEnumIndex;
         }
 
         private void MultiThreadingReceiveSocketStream(ReadOnlySpan<byte> e)
@@ -62,18 +70,18 @@ namespace AKNet.MSQuic.Client
             bool bSuccess = false;
             lock (mReceiveStreamList)
             {
-                bSuccess = mClientPeer.mCryptoMgr.Decode(mReceiveStreamList, mClientPeer.mNetPackage);
+                bSuccess = mServerMgr.mCryptoMgr.Decode(mReceiveStreamList, mServerMgr.mNetPackage);
             }
 
             if (bSuccess)
             {
-                if (CommonTcpLayerNetCommand.orInnerCommand(mClientPeer.mNetPackage.nPackageId))
+                if (CommonTcpLayerNetCommand.orInnerCommand(mServerMgr.mNetPackage.nPackageId))
                 {
 
                 }
                 else
                 {
-                    mClientPeer.mPackageManager.NetPackageExecute(this.mClientPeer, mClientPeer.mNetPackage);
+                    mServerMgr.mPackageManager.NetPackageExecute(this.mClientPeer.GetWrap(), mServerMgr.mNetPackage);
                 }
             }
 
@@ -93,7 +101,7 @@ namespace AKNet.MSQuic.Client
                     }
                     else
                     {
-                        //NetLog.Log($"mQuicStream.ReadAsync Length: {nLength}");
+                        NetLog.Log($"mQuicStream.ReadAsync Length: {nLength}");
                         DisConnectedWithError();
                         break;
                     }
@@ -108,7 +116,7 @@ namespace AKNet.MSQuic.Client
 
         public void SendNetStream(ReadOnlySpan<byte> mBufferSegment)
         {
-            if (mBufferSegment.Length > Config.nDataMaxLength)
+            if(mBufferSegment.Length > Config.nDataMaxLength)
             {
                 throw new Exception($"mBufferSegment.Length: {mBufferSegment.Length}");
             }
@@ -123,9 +131,7 @@ namespace AKNet.MSQuic.Client
                     bSend = true;
                 }
             }
-
-            //NetLog.Log($"SendNetStream: {mSendStreamList.Length}");
-
+            
             if (bSend)
             {
                 SendNetStream2();
@@ -137,7 +143,6 @@ namespace AKNet.MSQuic.Client
                     throw new Exception("SendNetStream 有数据, 但发送不了啊");
                 }
             }
-
         }
 
         private async void SendNetStream2()
@@ -156,19 +161,17 @@ namespace AKNet.MSQuic.Client
                             break;
                         }
                     }
-
-                    if (mQuicStream == null)
+                    
+                    if (this.mQuicStream == null)
                     {
-                        this.mQuicStream = await mClientPeer.mQuicConnection.OpenOutboundStreamAsync(QuicStreamType.Unidirectional).ConfigureAwait(false);
+                        this.mQuicStream = await mClientPeer.mQuicConnection.OpenOutboundStreamAsync(QuicStreamType.Unidirectional);
                     }
-
-                    await mQuicStream.WriteAsync(mSendBuffer.Slice(0, nLength)).ConfigureAwait(false);
-                    //NetLog.Log($"SendNetStream2: {mSendStreamList.Length}");
+                    await this.mQuicStream.WriteAsync(mSendBuffer.Slice(0, nLength));
                 }
             }
             catch (Exception e)
             {
-                NetLog.LogError(e.ToString());
+                //NetLog.LogError(e.ToString());
                 DisConnectedWithError();
             }
         }
@@ -190,12 +193,13 @@ namespace AKNet.MSQuic.Client
         }
 
         //发送----------------------------------------------------------------------------------------
+
         public void SendNetData(ushort nPackageId)
         {
             if (mClientPeer.GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
             {
                 mClientPeer.ResetSendHeartBeatTime();
-                var mBufferSegment = mClientPeer.mCryptoMgr.Encode(nStreamEnumIndex, nPackageId, ReadOnlySpan<byte>.Empty);
+                var mBufferSegment = mServerMgr.mCryptoMgr.Encode(nStreamEnumIndex, nPackageId, ReadOnlySpan<byte>.Empty);
                 SendNetStream(mBufferSegment);
             }
             else
@@ -209,7 +213,7 @@ namespace AKNet.MSQuic.Client
             if (mClientPeer.GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
             {
                 mClientPeer.ResetSendHeartBeatTime();
-                var mBufferSegment = mClientPeer.mCryptoMgr.Encode(nStreamEnumIndex, nPackageId, data);
+                var mBufferSegment = mServerMgr.mCryptoMgr.Encode(nStreamEnumIndex, nPackageId, data);
                 SendNetStream(mBufferSegment);
             }
             else
@@ -223,7 +227,7 @@ namespace AKNet.MSQuic.Client
             if (mClientPeer.GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
             {
                 mClientPeer.ResetSendHeartBeatTime();
-                var mBufferSegment = mClientPeer.mCryptoMgr.Encode(nStreamEnumIndex, mNetPackage.GetPackageId(), mNetPackage.GetData());
+                var mBufferSegment = mServerMgr.mCryptoMgr.Encode(nStreamEnumIndex, mNetPackage.GetPackageId(), mNetPackage.GetData());
                 SendNetStream(mBufferSegment);
             }
             else
@@ -237,7 +241,7 @@ namespace AKNet.MSQuic.Client
             if (mClientPeer.GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
             {
                 mClientPeer.ResetSendHeartBeatTime();
-                var mBufferSegment = mClientPeer.mCryptoMgr.Encode(nStreamEnumIndex, nPackageId, buffer);
+                var mBufferSegment = mServerMgr.mCryptoMgr.Encode(nStreamEnumIndex, nPackageId, buffer);
                 SendNetStream(mBufferSegment);
             }
             else

@@ -16,14 +16,14 @@ namespace AKNet.MSQuic.Server
     internal class ClientPeerPool
     {
         private readonly Stack<ClientPeer> mObjectPool = new Stack<ClientPeer>();
-        private ServerMgr mServerMgr = null;
+        private NetServerMain mServerMgr = null;
         private int nMaxCapacity = 0;
         private ClientPeer GenerateObject()
         {
             return new ClientPeer(this.mServerMgr);
         }
 
-        public ClientPeerPool(ServerMgr mServerMgr, int initCapacity = 0, int nMaxCapacity = 0)
+        public ClientPeerPool(NetServerMain mServerMgr, int initCapacity = 0, int nMaxCapacity = 0)
         {
             this.mServerMgr = mServerMgr;
             SetMaxCapacity(nMaxCapacity);

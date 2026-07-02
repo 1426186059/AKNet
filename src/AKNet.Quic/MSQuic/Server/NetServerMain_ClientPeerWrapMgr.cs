@@ -1,10 +1,10 @@
-﻿/************************************Copyright*****************************************
+/************************************Copyright*****************************************
  *  Project    : AKNet
- *  Web        : https://github.com/1426186059/AKNet
+ *  Web        : https://github.com/825126369/AKNet
  *  Description: C# 游戏网络库
  *  Author     : 许珂
  *  Since      : 2024/11/01 00:00:00
- *  Updated    : 2026/07/02 18:05:45
+ *  Updated    : 2026/07/02 19:19:43
  *  Copyright  : 作者保留一切版权权利, 商业用途需支付版权费用
  *  Contact    : 微信：AAA-2025-666-888
 ************************************Copyright*****************************************/
@@ -13,7 +13,7 @@ using AKNet.MSQuic.Common;
 
 namespace AKNet.MSQuic.Server
 {
-    internal partial class ServerMgr
+    internal partial class NetServerMain
     {
 		public void Update(double elapsed)
 		{
@@ -122,5 +122,4 @@ namespace AKNet.MSQuic.Server
 #endif
 		}
 	}
-
 }

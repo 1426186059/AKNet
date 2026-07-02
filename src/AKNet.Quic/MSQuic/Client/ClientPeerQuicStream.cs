@@ -9,10 +9,9 @@
  *  Contact    : 微信：AAA-2025-666-888
 ************************************Copyright*****************************************/
 using AKNet.Common;
-using AKNet.Quic.Common;
-using System.Net.Quic;
+using AKNet.MSQuic.Common;
 
-namespace AKNet.Quic.Client
+namespace AKNet.MSQuic.Client
 {
     internal class ClientPeerQuicStream
     {
@@ -24,10 +23,10 @@ namespace AKNet.Quic.Client
         private bool bSendIOContextUsed = false;
 
         private QuicStream mQuicStream;
-        private ClientPeer mClientPeer;
+        private NetClientMain mClientPeer;
         private readonly byte nStreamEnumIndex;
 
-        public ClientPeerQuicStream(ClientPeer mClientPeer, QuicStream mStream) //接收流
+        public ClientPeerQuicStream(NetClientMain mClientPeer, QuicStream mStream) //接收流
         {
             this.mClientPeer = mClientPeer;
             this.mQuicStream = mStream;
@@ -36,7 +35,7 @@ namespace AKNet.Quic.Client
             NetLog.Log($"New Accetp Stream: {mStream.Id}");
         }
 
-        public ClientPeerQuicStream(ClientPeer mClientPeer, byte nStreamEnumIndex) //发送流
+        public ClientPeerQuicStream(NetClientMain mClientPeer, byte nStreamEnumIndex) //发送流
         {
             this.mClientPeer = mClientPeer;
             this.nStreamEnumIndex = nStreamEnumIndex;
@@ -45,7 +44,7 @@ namespace AKNet.Quic.Client
             NetLog.Log($"New Send Stream: {nStreamEnumIndex}");
         }
 
-        public long GetStreamId()
+        public ulong GetStreamId()
         {
             return this.mQuicStream.Id;
         }
@@ -125,6 +124,8 @@ namespace AKNet.Quic.Client
                 }
             }
 
+            //NetLog.Log($"SendNetStream: {mSendStreamList.Length}");
+
             if (bSend)
             {
                 SendNetStream2();
@@ -162,11 +163,12 @@ namespace AKNet.Quic.Client
                     }
 
                     await mQuicStream.WriteAsync(mSendBuffer.Slice(0, nLength)).ConfigureAwait(false);
+                    //NetLog.Log($"SendNetStream2: {mSendStreamList.Length}");
                 }
             }
-            catch (QuicException e)
+            catch (Exception e)
             {
-                //NetLog.LogError(e.ToString());
+                NetLog.LogError(e.ToString());
                 DisConnectedWithError();
             }
         }

@@ -9,9 +9,10 @@
  *  Contact    : 微信：AAA-2025-666-888
 ************************************Copyright*****************************************/
 using AKNet.Common;
-using AKNet.MSQuic.Common;
+using AKNet.Quic.Common;
+using System.Net.Quic;
 
-namespace AKNet.MSQuic.Server
+namespace AKNet.Quic.Server
 {
     internal class ClientPeerQuicStream
     {
@@ -22,12 +23,12 @@ namespace AKNet.MSQuic.Server
         private readonly NetStreamCircularBuffer mReceiveStreamList = new NetStreamCircularBuffer();
         private bool bSendIOContextUsed = false;
 
-        private ServerMgr mServerMgr;
+        private NetServerMain mServerMgr;
         private QuicStream mQuicStream;
         private ClientPeer mClientPeer;
         private readonly byte nStreamEnumIndex;
 
-        public ClientPeerQuicStream(ServerMgr mServerMgr, ClientPeer mClientPeer, QuicStream mStream)
+        public ClientPeerQuicStream(NetServerMain mServerMgr, ClientPeer mClientPeer, QuicStream mStream)
         {
             this.mServerMgr = mServerMgr;
             this.mClientPeer = mClientPeer;
@@ -37,7 +38,7 @@ namespace AKNet.MSQuic.Server
             NetLog.Log($"New Accetp Stream: {mStream.Id}");
         }
 
-        public ClientPeerQuicStream(ServerMgr mServerMgr, ClientPeer mClientPeer, byte nStreamEnumIndex)
+        public ClientPeerQuicStream(NetServerMain mServerMgr, ClientPeer mClientPeer, byte nStreamEnumIndex)
         {
             this.mServerMgr = mServerMgr;
             this.mClientPeer = mClientPeer;
@@ -47,7 +48,7 @@ namespace AKNet.MSQuic.Server
             NetLog.Log($"New Send Stream: {nStreamEnumIndex}");
         }
 
-        public ulong GetStreamId()
+        public long GetStreamId()
         {
             return this.mQuicStream.Id;
         }
@@ -169,9 +170,9 @@ namespace AKNet.MSQuic.Server
                     await this.mQuicStream.WriteAsync(mSendBuffer.Slice(0, nLength));
                 }
             }
-            catch (Exception e)
+            catch (QuicException e)
             {
-                //NetLog.LogError(e.ToString());
+                NetLog.LogError(e.ToString());
                 DisConnectedWithError();
             }
         }

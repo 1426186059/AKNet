@@ -16,7 +16,7 @@ using System.Net.Security;
 
 namespace AKNet.Quic.Client
 {
-    internal partial class ClientPeer
+    internal partial class NetClientMain
     {
 		public void ReConnectServer()
 		{

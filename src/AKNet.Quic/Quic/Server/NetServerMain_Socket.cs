@@ -9,13 +9,14 @@
  *  Contact    : 微信：AAA-2025-666-888
 ************************************Copyright*****************************************/
 using AKNet.Common;
-using AKNet.MSQuic.Common;
+using AKNet.Quic.Common;
 using System.Net;
+using System.Net.Quic;
 using System.Net.Security;
 
-namespace AKNet.MSQuic.Server
+namespace AKNet.Quic.Server
 {
-    internal partial class ServerMgr
+    internal partial class NetServerMain
     {
         public void InitNet()
         {
@@ -51,15 +52,21 @@ namespace AKNet.MSQuic.Server
             InitNet(IPAddress.Parse(Ip), nPort);
         }
 
-        private void InitNet(IPAddress mIPAddress, int nPort)
+        private async void InitNet(IPAddress mIPAddress, int nPort)
         {
+            if (!QuicListener.IsSupported)
+            {
+                NetLog.LogError("QUIC is not supported.");
+                return;
+            }
+
             this.nPort = nPort;
             this.mState = SOCKET_SERVER_STATE.NORMAL;
 
             try
             {
                 var options = GetQuicListenerOptions(mIPAddress, nPort);
-                mQuicListener = QuicListener.StartListen(options);
+                mQuicListener = await QuicListener.ListenAsync(options);
                 NetLog.Log("服务器 初始化成功: " + mIPAddress + " | " + nPort);
                 StartProcessAccept();
             }
@@ -72,15 +79,19 @@ namespace AKNet.MSQuic.Server
 
         private QuicListenerOptions GetQuicListenerOptions(IPAddress mIPAddress, int nPort)
         {
+            var ApplicationProtocols = new List<SslApplicationProtocol>();
+            ApplicationProtocols.Add(SslApplicationProtocol.Http3);
+
             QuicListenerOptions mOption = new QuicListenerOptions();
             mOption.ListenEndPoint = new IPEndPoint(mIPAddress, nPort);
-            mOption.GetConnectionOptionFunc = ConnectionOptionsCallback;
+            mOption.ApplicationProtocols = ApplicationProtocols;
+            mOption.ConnectionOptionsCallback = ConnectionOptionsCallback;
             return mOption;
         }
 
-        private QuicConnectionOptions ConnectionOptionsCallback()
+        private ValueTask<QuicServerConnectionOptions> ConnectionOptionsCallback(QuicConnection mQuicConnection, SslClientHelloInfo mSslClientHelloInfo, CancellationToken mCancellationToken)
         {
-            var mCert = X509CertTool.GetPfxCert();
+            var mCert = X509CertTool.GetQuicCert();
 
             //mCert = X509CertificateLoader.LoadCertificateFromFile("D:\\Me\\OpenSource\\AKNet2\\cert.pfx");
             NetLog.Assert(mCert != null, "GetCert() == null");
@@ -93,10 +104,14 @@ namespace AKNet.MSQuic.Server
             var ServerAuthenticationOptions = new SslServerAuthenticationOptions();
             ServerAuthenticationOptions.ApplicationProtocols = ApplicationProtocols;
             ServerAuthenticationOptions.ServerCertificate = mCert;
-
-            QuicConnectionOptions mOption = new QuicConnectionOptions();
+            
+            QuicServerConnectionOptions mOption = new QuicServerConnectionOptions();
             mOption.ServerAuthenticationOptions = ServerAuthenticationOptions;
-            return mOption;
+            mOption.DefaultCloseErrorCode = Config.DefaultCloseErrorCode;
+            mOption.DefaultStreamErrorCode = Config.DefaultStreamErrorCode;
+            mOption.MaxInboundBidirectionalStreams = byte.MaxValue;
+            mOption.MaxInboundUnidirectionalStreams = byte.MaxValue;
+            return ValueTask.FromResult(mOption);
         }
 
         private async void StartProcessAccept()
@@ -125,14 +140,14 @@ namespace AKNet.MSQuic.Server
             return mState;
         }
 
-        public void CloseNet()
+        public async void CloseNet()
         {
             MainThreadCheck.Check();
             if (mQuicListener != null)
             {
                 var mQuicListener2 = mQuicListener;
                 mQuicListener = null;
-                mQuicListener2.Close();
+                await mQuicListener2.DisposeAsync();
             }
         }
 
