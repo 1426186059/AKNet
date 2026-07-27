@@ -1,0 +1,82 @@
+﻿/************************************Copyright*****************************************
+ *  Project    : KNet
+ *  Web        : https://github.com/1426186059/KNet
+ *  Description: C# 游戏网络库
+ *  Author     : 许珂
+ *  Since      : 2024/11/01 00:00:00
+ *  Updated    : 2026/07/28 00:39:11
+ *  Copyright  : 作者保留一切版权权利, 商业用途需支付版权费用
+ *  Contact    : 微信：AAA-2025-666-888
+************************************Copyright*****************************************/
+#if TARGET_WINDOWS
+using System.Runtime.InteropServices;
+
+namespace KNet.Platform
+{
+    public static unsafe class DynamicWinsockMethods
+    {
+        private static readonly Guid WSASendMsgGuid = new Guid(0xa441e712, 0x754f, 0x43ca, 0x84, 0xa7, 0x0d, 0xee, 0x44, 0xcf, 0x60, 0x6d);
+        private static readonly Guid WSARecvMsgGuid = new Guid(0xf689d7c8, 0x6f1f, 0x436b, 0x8a, 0x53, 0xe5, 0x4f, 0xe3, 0x51, 0xc3, 0x22);
+        private static WSARecvMsg _recvMsg;
+        private static WSASendMsg _sendMsg;
+
+        private static T CreateDelegate<T>(SafeHandle socketHandle, Guid guid) where T : Delegate
+        {
+            IntPtr ptr = IntPtr.Zero;
+            int Result = Interop.Winsock.WSAIoctl(
+               socketHandle,
+               OSPlatformFunc.SIO_GET_EXTENSION_FUNCTION_POINTER,
+               &guid,
+               sizeof(Guid),
+               &ptr,
+               sizeof(IntPtr),
+               out _,
+               null,
+               null);
+
+            if (Result != OSPlatformFunc.NO_ERROR)
+            {
+                int WsaError = Marshal.GetLastWin32Error();
+                return null;
+            }
+
+            return Marshal.GetDelegateForFunctionPointer<T>(ptr);
+        }
+
+        public static unsafe WSARecvMsg GetWSARecvMsgDelegate(SafeHandle socketHandle)
+        {
+            if (_recvMsg == null)
+            {
+                _recvMsg = CreateDelegate<WSARecvMsg>(socketHandle, WSARecvMsgGuid);
+            }
+            return _recvMsg;
+        }
+
+        public static unsafe WSASendMsg GetWSASendMsgDelegate(SafeHandle socketHandle)
+        {
+            if (_sendMsg == null)
+            {
+                _sendMsg = CreateDelegate<WSASendMsg>(socketHandle, WSASendMsgGuid);
+            }
+            return _sendMsg;
+        }
+    }
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    public unsafe delegate int WSARecvMsg(
+                SafeHandle socketHandle,
+                WSAMSG* msg,
+                int* bytesTransferred,
+                OVERLAPPED* overlapped,
+                void* completionRoutine);
+    
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    public unsafe delegate int WSASendMsg(
+                SafeHandle Handle,
+                WSAMSG* lpMsg,
+                uint dwFlags,
+                int* lpNumberOfBytesSent,
+                OVERLAPPED* lpOverlapped,
+                void* lpCompletionRoutine);
+}
+#endif

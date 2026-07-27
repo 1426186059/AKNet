@@ -1,0 +1,34 @@
+﻿/************************************Copyright*****************************************
+ *  Project    : KNet
+ *  Web        : https://github.com/1426186059/KNet
+ *  Description: C# 游戏网络库
+ *  Author     : 许珂
+ *  Since      : 2024/11/01 00:00:00
+ *  Updated    : 2026/07/28 00:39:11
+ *  Copyright  : 作者保留一切版权权利, 商业用途需支付版权费用
+ *  Contact    : 微信：AAA-2025-666-888
+************************************Copyright*****************************************/
+namespace KNet.LinuxTcp.Common
+{
+    internal enum TCP_MIB
+    {
+        TCP_MIB_NUM = 0,
+        TCP_MIB_RTOALGORITHM,           /* RtoAlgorithm */
+        TCP_MIB_RTOMIN,             /* RtoMin */
+        TCP_MIB_RTOMAX,             /* RtoMax */
+        TCP_MIB_MAXCONN,            /* MaxConn */
+        TCP_MIB_ACTIVEOPENS,            /* ActiveOpens */
+        TCP_MIB_PASSIVEOPENS,           /* PassiveOpens */
+        TCP_MIB_ATTEMPTFAILS,           /* AttemptFails */
+        TCP_MIB_ESTABRESETS,            /* EstabResets */
+        TCP_MIB_CURRESTAB,          /* CurrEstab */
+        TCP_MIB_INSEGS,             /* InSegs */
+        TCP_MIB_OUTSEGS,            /* OutSegs */
+        TCP_MIB_RETRANSSEGS,            /* RetransSegs */
+        TCP_MIB_INERRS,             /* InErrs */
+        TCP_MIB_OUTRSTS,            /* OutRsts */
+        TCP_MIB_CSUMERRORS,         /* InCsumErrors */
+        __TCP_MIB_MAX
+    }
+}
+

@@ -1,0 +1,113 @@
+﻿/************************************Copyright*****************************************
+ *  Project    : KNet
+ *  Web        : https://github.com/1426186059/KNet
+ *  Description: C# 游戏网络库
+ *  Author     : 许珂
+ *  Since      : 2024/11/01 00:00:00
+ *  Updated    : 2026/07/28 00:39:11
+ *  Copyright  : 作者保留一切版权权利, 商业用途需支付版权费用
+ *  Contact    : 微信：AAA-2025-666-888
+************************************Copyright*****************************************/
+using KNet.Common;
+using System;
+using System.Net.Sockets;
+
+namespace KNet.Udp5Tcp.Common
+{
+    internal partial class Connection
+    {
+        private void SendUDPPackage2(NetUdpSendFixedSizePackage mPackage)
+        {
+            SimpleQuicFunc.ThreadCheck(this);
+
+            if (Config.bUseSingleSendArgs)
+            {
+                lock (mSendStreamList)
+                {
+                    var mBufferItem = mSendStreamList.BeginSpan();
+                    UdpPackageEncryption.EncodeHead(mBufferItem.GetCanWriteSpan(), mPackage);
+                    mBufferItem.nSpanLength += Config.nUdpPackageFixedHeadSize;
+                    if (mPackage.WindowBuff != null)
+                    {
+                        mPackage.WindowBuff.CopyTo(mBufferItem.GetCanWriteSpan(), mPackage.WindowOffset, mPackage.WindowLength);
+                        mBufferItem.nSpanLength += mPackage.WindowLength;
+                    }
+                    mSendStreamList.FinishSpan();
+                }
+
+                if (!bSendIOContexUsed)
+                {
+                    bSendIOContexUsed = true;
+                    SendNetStream2();
+                }
+            }
+            else
+            {
+                SSocketAsyncEventArgs mSendArgs = mLogicWorker.mSendEventArgsPool.Pop();
+                Span<byte> mMemoryBuffer = mSendArgs.MemoryBuffer.Span;
+                UdpPackageEncryption.EncodeHead(mMemoryBuffer, mPackage);
+                mMemoryBuffer = mMemoryBuffer.Slice(Config.nUdpPackageFixedHeadSize);
+
+                if (mPackage.WindowBuff != null)
+                {
+                    mPackage.WindowBuff.CopyTo(mMemoryBuffer, mPackage.WindowOffset, mPackage.WindowLength);
+                }
+
+                mSendArgs.SetBuffer(0, mPackage.nBodyLength + Config.nUdpPackageFixedHeadSize);
+                mSendArgs.UserToken = mLogicWorker.mSendEventArgsPool;
+                mSendArgs.RemoteEndPoint = RemoteEndPoint;
+                mLogicWorker.mSocketItem.SendToAsync(mSendArgs);
+            }
+        }
+
+        public void WorkerThreadReceiveNetPackage(SocketAsyncEventArgs e)
+        {
+            if (Config.bUseSocketAsyncEventArgsTwoComplete)
+            {
+                SimpleQuicFunc.ThreadCheck(this);
+            }
+
+            if (m_OnDestroyDontReceiveData) return;
+            
+            SocketItem mSocketItem = e.UserToken as SocketItem;
+            ReadOnlySpan<byte> mBuff = e.MemoryBuffer.Span.Slice(e.Offset, e.BytesTransferred);
+            NetUdpReceiveFixedSizePackage mPackage = null;
+
+            while (true)
+            {
+                mPackage = mSocketItem.mLogicWorker.UdpReceivePackage_Pop();
+                bool bSucccess = UdpPackageEncryption.Decode(mBuff, mPackage);
+                if (bSucccess)
+                {
+                    int nReadBytesCount = mPackage.nBodyLength + Config.nUdpPackageFixedHeadSize;
+                    lock (mReceiveWaitCheckPackageQueue)
+                    {
+                        mReceiveWaitCheckPackageQueue.Enqueue(mPackage);
+                    }
+
+                    if (!mPackage.orInnerCommandPackage())
+                    {
+                        nCurrentCheckPackageCount++;
+                    }
+
+                    if (mBuff.Length > nReadBytesCount)
+                    {
+                        mBuff = mBuff.Slice(nReadBytesCount);
+                    }
+                    else
+                    {
+                        NetLog.Assert(mBuff.Length == nReadBytesCount);
+                        break;
+                    }
+                }
+                else
+                {
+                    mLogicWorker.UdpReceivePackage_Recycle(mPackage);
+                    NetLog.LogError("解码失败 !!!");
+                    break;
+                }
+            }
+
+        }
+    }
+}

@@ -1,8 +1,8 @@
-﻿using AKNet.Common;
+﻿using KNet.Common;
 using System;
 using System.Net;
 
-namespace AKNet.Test
+namespace KNet.Test
 {
     internal class Program
     {

@@ -1,4 +1,4 @@
-using AKNet.Common;
+using KNet.Common;
 using Google.Protobuf;
 using System;
 using System.Collections.Generic;
@@ -75,7 +75,7 @@ namespace githubExample
         private static void SendMsg(ClientPeerBase peer)
         {
             TESTChatMessage mdata = new TESTChatMessage();
-            mdata.TalkMsg = "Hello, AkNet Client";
+            mdata.TalkMsg = "Hello, KNet Client";
             peer.SendNetData(COMMAND_TESTCHAT, mdata.ToByteArray());
         }
     }

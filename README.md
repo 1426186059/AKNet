@@ -1,8 +1,8 @@
-# AKNet
+# KNet
 
 一个高性能 C# 网络库，核心目标是实现超越 TCP 的可靠有序 UDP 算法。支持 TCP / UDP / WebSocket / QUIC，协议间可无缝切换，兼容 **Unity** 与 **.NET 8.0+**，服务端和客户端共用一套接口。
 
-> **注意**：原 AKNet 仓库（[https://github.com/825126369/AKNet](https://github.com/825126369/AKNet)）已不再维护，此仓库为最新地址。
+> **注意**：原 KNet 仓库（[https://github.com/825126369/KNet](https://github.com/825126369/KNet)）已不再维护，此仓库为最新地址。
 
 ## 特点
 
@@ -35,7 +35,7 @@ var server = new NetServerMain(NetType.WebSocket); // WebSocket
 ### Server
 
 ```csharp
-using AKNet.Common;
+using KNet.Common;
 
 public class NetServerHandler
 {
@@ -65,7 +65,7 @@ public class NetServerHandler
 ### Client
 
 ```csharp
-using AKNet.Common;
+using KNet.Common;
 
 public class NetClientHandler
 {
@@ -145,11 +145,11 @@ public class NetworkManager : MonoBehaviour
 
 ```
 src/
-├── AKNet.Common/       # 公共接口、Buffer 管理、日志
-├── AKNet/              # UDP/TCP 各协议模块
-├── AKNet.WebSocket/    # WebSocket 实现
-├── AKNet.Quic/         # QUIC 实现
-├── AKNet.LinuxTcp/     # Linux TCP 拥塞控制算法 C# 移植
+├── KNet.Common/       # 公共接口、Buffer 管理、日志
+├── KNet/              # UDP/TCP 各协议模块
+├── KNet.WebSocket/    # WebSocket 实现
+├── KNet.Quic/         # QUIC 实现
+├── KNet.LinuxTcp/     # Linux TCP 拥塞控制算法 C# 移植
 └── Test/               # 测试工程
 ```
 

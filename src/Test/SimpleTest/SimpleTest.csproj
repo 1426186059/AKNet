@@ -10,7 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\AKNet.Common\AKNet.Common.csproj" />
+    <ProjectReference Include="..\..\KNet.Common\KNet.Common.csproj" />
   </ItemGroup>
 
 </Project>

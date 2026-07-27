@@ -1,0 +1,108 @@
+﻿/************************************Copyright*****************************************
+ *  Project    : KNet
+ *  Web        : https://github.com/1426186059/KNet
+ *  Description: C# 游戏网络库
+ *  Author     : 许珂
+ *  Since      : 2024/11/01 00:00:00
+ *  Updated    : 2026/07/28 00:39:11
+ *  Copyright  : 作者保留一切版权权利, 商业用途需支付版权费用
+ *  Contact    : 微信：AAA-2025-666-888
+************************************Copyright*****************************************/
+using KNet.Common;
+using System;
+using System.Collections.Generic;
+using System.Net;
+
+namespace KNet.Udp2Tcp.Common
+{
+	internal class InnectCommandPeekPackage : IPoolItemInterface
+	{
+        public UInt16 mPackageId;
+		public ushort Length;
+
+        public void Reset()
+		{
+			this.mPackageId = 0;
+			this.Length = 0;
+        }
+
+        public void Dispose() { }
+	}
+
+	internal class NetUdpFixedSizePackage : IPoolItemInterface
+	{
+		public LinkedListNode<NetUdpFixedSizePackage> mEntry;
+		public readonly TcpStanardRTOTimer mTcpStanardRTOTimer = null;
+		public readonly CheckPackageInfo_TimeOutGenerator mTimeOutGenerator_ReSend = null;
+		public UInt16 nOrderId;
+		public UInt16 nRequestOrderId;
+        public int Length;
+        public EndPoint remoteEndPoint;
+
+        public readonly byte[] buffer;
+
+		public NetUdpFixedSizePackage()
+		{
+			mEntry = new LinkedListNode<NetUdpFixedSizePackage>(this);
+            buffer = new byte[CommonUdpLayerConfig.nUdpPackageFixedSize];
+            mTcpStanardRTOTimer = new TcpStanardRTOTimer();
+            mTimeOutGenerator_ReSend = new CheckPackageInfo_TimeOutGenerator();
+        }
+
+		public void Reset()
+		{
+            this.nRequestOrderId = 0;
+			this.nOrderId = 0;
+			this.Length = 0;
+			this.remoteEndPoint = null;
+
+			if (Config.bUdpCheck)
+			{
+				mTimeOutGenerator_ReSend.Reset();
+			}
+		}
+
+        public void SetRequestOrderId(UInt16 nOrderId)
+		{
+			this.nRequestOrderId = nOrderId;
+		}
+
+		public UInt16 GetRequestOrderId()
+		{
+			return this.nRequestOrderId;
+		}
+
+		public UInt16 GetPackageId()
+		{
+            return this.nOrderId;
+        }
+
+		public void SetPackageId(ushort nPackageId)
+        {
+			this.nOrderId = nPackageId;
+        }
+
+        public void Dispose() { }
+
+		public void CopyFrom(ReadOnlySpan<byte> stream)
+		{
+			this.Length = Config.nUdpPackageFixedHeadSize + stream.Length;
+			if (stream.Length > 0)
+			{
+				stream.CopyTo(this.buffer.AsSpan().Slice(Config.nUdpPackageFixedHeadSize));
+			}
+		}
+
+		public ReadOnlySpan<byte> GetBufferSpan()
+		{
+			return buffer.AsSpan().Slice(0, Length);
+		}
+
+        public ReadOnlySpan<byte> GetTcpBufferSpan()
+        {
+            return buffer.AsSpan().Slice(Config.nUdpPackageFixedHeadSize, Length - Config.nUdpPackageFixedHeadSize);
+        }
+    }
+
+}
+

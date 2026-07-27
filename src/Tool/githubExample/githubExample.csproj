@@ -8,8 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\AKNet.Extentions.Protobuf\AKNet.Extentions.Protobuf.csproj" />
-    <ProjectReference Include="..\..\AKNet\AKNet.csproj" />
+    <ProjectReference Include="..\..\KNet.Extentions.Protobuf\KNet.Extentions.Protobuf.csproj" />
+    <ProjectReference Include="..\..\KNet\KNet.csproj" />
   </ItemGroup>
 
 </Project>

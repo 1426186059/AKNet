@@ -1,0 +1,227 @@
+﻿/************************************Copyright*****************************************
+ *  Project    : KNet
+ *  Web        : https://github.com/1426186059/KNet
+ *  Description: C# 游戏网络库
+ *  Author     : 许珂
+ *  Since      : 2024/11/01 00:00:00
+ *  Updated    : 2026/07/28 00:39:11
+ *  Copyright  : 作者保留一切版权权利, 商业用途需支付版权费用
+ *  Contact    : 微信：AAA-2025-666-888
+************************************Copyright*****************************************/
+using System;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
+namespace KNet.Common
+{
+    public static partial class NetLog
+    {
+        public static void SetOrPrintLog(bool bPrintLog)
+        {
+            NetLog.bPrintLog = bPrintLog;
+        }
+
+        public static void AddLogFunc(Action<string> LogFunc, Action<string> LogErrorFunc, Action<string> LogWarningFunc)
+        {
+            NetLog.LogFunc += LogFunc;
+            NetLog.LogErrorFunc += LogErrorFunc;
+            NetLog.LogWarningFunc += LogWarningFunc;
+        }
+
+        public static void AddConsoleLog()
+        {
+            Init();
+
+            Action<string> LogFunc = static (string message) =>
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine(message);
+            };
+
+            Action<string> LogErrorFunc = static (string message) =>
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine(message);
+            };
+
+            Action<string> LogWarningFunc = static (string message) =>
+            {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine(message);
+            };
+
+            AddLogFunc(LogFunc, LogErrorFunc, LogWarningFunc);
+        }
+    }
+    
+    public static partial class NetLog
+    {
+        private const bool bPrintAllLogToFile = false;
+        public static bool bPrintLog = true;
+        public static event Action<string> LogFunc;
+        public static event Action<string> LogWarningFunc;
+        public static event Action<string> LogErrorFunc;
+        
+        static NetLog()
+        {
+            Init();
+        }
+
+        private static bool bInit = false;
+        public static void Init()
+        {
+            if (bInit) return; bInit = true;
+
+            System.AppDomain.CurrentDomain.UnhandledException += _OnUncaughtExceptionHandler;
+#if DEBUG
+            if (bPrintAllLogToFile)
+            {
+                LogFunc += LogToFile;
+                LogWarningFunc += LogToFile;
+                LogErrorFunc += LogToFile;
+            }
+            else
+            {
+                LogErrorFunc += LogToFile;
+            }
+
+            try
+            {
+                // 在使用ProcessStartInfo 的重定向输出输入流 时，这里报错
+                Console.Clear();
+            }
+            catch { }
+#endif
+        }
+
+        static void LogToFile(string Message)
+        {
+#if NET8_0_OR_GREATER
+            LogFileMgr.AddMsg(Message);
+#endif
+        }
+
+        private static void _OnUncaughtExceptionHandler(object sender, System.UnhandledExceptionEventArgs args)
+        {
+            Exception exception = args.ExceptionObject as Exception;
+            LogUncaughtException(exception);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static string GetMsgStr(string logTag, object msgObj, string StackTraceObj)
+        {
+            string message = msgObj != null ? msgObj.ToString() : string.Empty;
+            string StackTraceInfo = StackTraceObj != null ? "\n" + StackTraceObj : string.Empty;
+            return $"{DateTime.Now.ToString()}  {logTag}: {message} {StackTraceInfo}";
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static string GetAssertMsg(object msgObj, string StackTraceInfo)
+        {
+            return GetMsgStr("Assert Error", msgObj, StackTraceInfo);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static string Get_OnUncaughtExceptionMsg(object msgObj, string StackTraceInfo)
+        {
+            return GetMsgStr("___OnUncaught Exception", msgObj, StackTraceInfo);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static string GetExceptionMsg(object msgObj, string StackTraceInfo)
+        {
+            return GetMsgStr("Exception", msgObj, StackTraceInfo);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static string GetErrorMsg(object msgObj, string StackTraceInfo)
+        {
+            return GetMsgStr("Error", msgObj, StackTraceInfo);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static string GetLogMsg(object msgObj, string StackTraceInfo = null)
+        {
+            return GetMsgStr("Log", msgObj, StackTraceInfo);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static string GetWarningMsg(object msgObj, string StackTraceInfo = null)
+        {
+            return GetMsgStr("Warning", msgObj, StackTraceInfo);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static string GetStackTraceInfo()
+        {
+            StackTrace st = new StackTrace(1, true);
+            return st.ToString();
+        }
+
+        public static void Log(object message)
+        {
+            if (!bPrintLog) return;
+            string msg = GetLogMsg(message);
+            if (LogFunc != null)
+            {
+                LogFunc(msg);
+            }
+        }
+
+        public static void LogWarning(object message)
+        {
+            if (!bPrintLog) return;
+            string msg = GetWarningMsg(message);
+            if (LogWarningFunc != null)
+            {
+                LogWarningFunc(msg);
+            }
+        }
+
+        private static void LogUncaughtException(Exception e)
+        {
+            if (!bPrintLog) return;
+            string msg = Get_OnUncaughtExceptionMsg(e, GetStackTraceInfo());
+            if (LogErrorFunc != null)
+            {
+                LogErrorFunc(msg);
+            }
+        }
+
+        public static void LogException(Exception e)
+        {
+            if (!bPrintLog) return;
+            string msg = GetExceptionMsg(e, GetStackTraceInfo());
+            if (LogErrorFunc != null)
+            {
+                LogErrorFunc(msg);
+            }
+        }
+
+        public static void LogError(object message)
+        {
+            if (!bPrintLog) return;
+            string msg = GetErrorMsg(message, GetStackTraceInfo());
+            if (LogErrorFunc != null)
+            {
+                LogErrorFunc(msg);
+            }
+        }
+
+        [Conditional("DEBUG")]
+        public static void Assert(bool bTrue, object message = null)
+        {
+            if (!bTrue)
+            {
+                string msg = GetAssertMsg(message, GetStackTraceInfo());
+                if (LogErrorFunc != null)
+                {
+                    LogErrorFunc(msg);
+                }
+                //System.Diagnostics.Debug.Assert 会终止整个应用程序，错误日志就不能输出到文件里了
+            }
+        }
+
+    }
+}

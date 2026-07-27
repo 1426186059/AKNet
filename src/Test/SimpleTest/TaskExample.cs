@@ -1,6 +1,6 @@
-﻿using AKNet.Common;
+﻿using KNet.Common;
 
-namespace AKNet.Test
+namespace KNet.Test
 {
     internal static class TaskExample
     {

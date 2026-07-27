@@ -5,11 +5,11 @@ namespace CopyDll
     internal class Program
     {
         static readonly string[] projectDirList = {
-                "AKNet.Common",
-                "AKNet",
-                "AKNet.Extentions.Protobuf",
-                "AKNet.WebSocket",
-                "AKNet.LinuxTcp",
+                "KNet.Common",
+                "KNet",
+                "KNet.Extentions.Protobuf",
+                "KNet.WebSocket",
+                "KNet.LinuxTcp",
             };
 
         static void Main(string[] args)
@@ -43,7 +43,7 @@ namespace CopyDll
                     {
                         foreach (var v in Directory.GetFiles(codeDir, "*.dll", SearchOption.AllDirectories))
                         {
-                            if (v.Contains(Path.Combine("bin", dirKey)) && v.Contains("AKNet"))
+                            if (v.Contains(Path.Combine("bin", dirKey)) && v.Contains("KNet"))
                             {
                                 string fileName = Path.GetFileName(v);
                                 string outFilePath = Path.Combine(OutDllDir, fileName);

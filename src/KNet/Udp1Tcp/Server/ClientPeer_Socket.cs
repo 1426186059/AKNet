@@ -1,0 +1,247 @@
+﻿/************************************Copyright*****************************************
+ *  Project    : KNet
+ *  Web        : https://github.com/1426186059/KNet
+ *  Description: C# 游戏网络库
+ *  Author     : 许珂
+ *  Since      : 2024/11/01 00:00:00
+ *  Updated    : 2026/07/28 00:39:11
+ *  Copyright  : 作者保留一切版权权利, 商业用途需支付版权费用
+ *  Contact    : 微信：AAA-2025-666-888
+************************************Copyright*****************************************/
+using KNet.Common;
+using KNet.Udp1Tcp.Common;
+using System;
+using System.Net;
+using System.Net.Sockets;
+
+namespace KNet.Udp1Tcp.Server
+{
+    internal partial class ClientPeer
+    {
+        public void HandleConnectedSocket(FakeSocket mSocket)
+        {
+            MainThreadCheck.Check();
+            NetLog.Assert(mSocket != null, "mSocket == null");
+
+            this.mSocket = mSocket;
+            this.mIPEndPoint = mSocket.RemoteEndPoint;
+            SendArgs.RemoteEndPoint = this.mIPEndPoint;
+            SetSocketState(SOCKET_PEER_STATE.CONNECTED);
+        }
+
+        public IPEndPoint GetIPEndPoint()
+        {
+            if (mSocket != null)
+            {
+                return mSocket.RemoteEndPoint;
+            }
+            else
+            {
+                return mIPEndPoint;
+            }
+        }
+
+        public int GetCurrentFrameRemainPackageCount()
+        {
+            return mSocket.GetCurrentFrameRemainPackageCount();
+        }
+
+        public bool GetReceivePackage(out NetUdpFixedSizePackage mPackage)
+        {
+            return mSocket.GetReceivePackage(out mPackage);
+        }
+
+        public bool SendToAsync(SocketAsyncEventArgs e)
+        {
+            bool bIOPending = true;
+            if (mSocket != null)
+            {
+                try
+                {
+                    bIOPending = mSocket.SendToAsync(e);
+                }
+                catch (Exception ex)
+                {
+                    bSendIOContexUsed = false;
+                    DisConnectedWithException(ex);
+                }
+            }
+
+            return bIOPending;
+        }
+
+        private void ProcessSend(object sender, SocketAsyncEventArgs e)
+        {
+            if (e.SocketError == SocketError.Success)
+            {
+                if (Config.bUseSendStream)
+                {
+                    SendNetStream2();
+                }
+                else
+                {
+                    SendNetPackage2();
+                }
+            }
+            else
+            {
+                DisConnectedWithSocketError(e.SocketError);
+                bSendIOContexUsed = false;
+            }
+        }
+
+        public void SendNetPackage1(NetUdpFixedSizePackage mPackage)
+        {
+            mPackage.remoteEndPoint = GetIPEndPoint();
+            UdpPackageEncryption.Encode(mPackage);
+
+            MainThreadCheck.Check();
+            if (Config.bUseSendAsync)
+            {
+                if (Config.bUseSendStream)
+                {
+                    lock (mSendStreamList)
+                    {
+                        mSendStreamList.WriteFromOneSpan(mPackage.GetBufferSpan());
+                    }
+
+                    if (!bSendIOContexUsed)
+                    {
+                        bSendIOContexUsed = true;
+                        SendNetStream2();
+                    }
+                }
+                else
+                {
+                    mSendPackageQueue.Enqueue(mPackage);
+                    if (!bSendIOContexUsed)
+                    {
+                        bSendIOContexUsed = true;
+                        SendNetPackage2();
+                    }
+                }
+            }
+            else
+            {
+                mServerMgr.SendTo(mPackage);
+                if (!Config.bUseSendStream)
+                {
+                    GetObjectPoolManager().NetUdpFixedSizePackage_Recycle(mPackage);
+                }
+            }
+        }
+
+        private void SendNetPackage2()
+        {
+            NetUdpFixedSizePackage mPackage = null;
+            if (mSendPackageQueue.Count > 0)
+            {
+                int nSendBytesCount = 0;
+                if (Config.bSocketSendMultiPackage)
+                {
+                    while (mSendPackageQueue.TryPeek(out mPackage))
+                    {
+                        if (mPackage.Length + nSendBytesCount <= SendArgs.Buffer.Length)
+                        {
+                            if (mSendPackageQueue.TryDequeue(out mPackage))
+                            {
+                                Buffer.BlockCopy(mPackage.buffer, 0, SendArgs.Buffer, nSendBytesCount, mPackage.Length);
+                                nSendBytesCount += mPackage.Length;
+                                GetObjectPoolManager().NetUdpFixedSizePackage_Recycle(mPackage);
+                            }
+                            else
+                            {
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    if (mSendPackageQueue.TryDequeue(out mPackage))
+                    {
+                        Buffer.BlockCopy(mPackage.buffer, 0, SendArgs.Buffer, nSendBytesCount, mPackage.Length);
+                        nSendBytesCount += mPackage.Length;
+                        GetObjectPoolManager().NetUdpFixedSizePackage_Recycle(mPackage);
+                    }
+                }
+
+                SendArgs.SetBuffer(0, nSendBytesCount);
+                if (!SendToAsync(SendArgs))
+                {
+                    ProcessSend(null, SendArgs);
+                }
+            }
+            else
+            {
+                bSendIOContexUsed = false;
+            }
+        }
+        
+        private void SendNetStream2()
+        {
+            var mSendArgSpan = SendArgs.Buffer.AsSpan();
+            int nSendBytesCount = 0;
+            if (Config.bSocketSendMultiPackage)
+            {
+                lock (mSendStreamList)
+                {
+                    nSendBytesCount += mSendStreamList.WriteToMax(mSendArgSpan);
+                }
+            }
+            else
+            {
+                lock (mSendStreamList)
+                {
+                    nSendBytesCount += mSendStreamList.WriteTo(mSendArgSpan);
+                }
+            }
+
+            if (nSendBytesCount > 0)
+            {
+                SendArgs.SetBuffer(0, nSendBytesCount);
+                if (!SendToAsync(SendArgs))
+                {
+                    ProcessSend(null, SendArgs);
+                }
+            }
+            else
+            {
+                bSendIOContexUsed = false;
+            }
+        }
+
+        private void DisConnectedWithException(Exception e)
+        {
+            if (mSocket != null)
+            {
+                NetLog.LogException(e);
+            }
+            DisConnectedWithError();
+        }
+
+        private void DisConnectedWithSocketError(SocketError e)
+        {
+            DisConnectedWithError();
+        }
+
+        private void DisConnectedWithError()
+        {
+            SetSocketState(SOCKET_PEER_STATE.DISCONNECTED);
+        }
+
+        public void CloseSocket()
+        {
+            if (mSocket != null)
+            {
+                mSocket.Close();
+                mSocket = null;
+            }
+        }
+
+    }
+}

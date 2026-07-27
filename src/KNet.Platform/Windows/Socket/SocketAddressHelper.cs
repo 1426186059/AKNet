@@ -1,0 +1,173 @@
+﻿/************************************Copyright*****************************************
+ *  Project    : KNet
+ *  Web        : https://github.com/1426186059/KNet
+ *  Description: C# 游戏网络库
+ *  Author     : 许珂
+ *  Since      : 2024/11/01 00:00:00
+ *  Updated    : 2026/07/28 00:39:11
+ *  Copyright  : 作者保留一切版权权利, 商业用途需支付版权费用
+ *  Contact    : 微信：AAA-2025-666-888
+************************************Copyright*****************************************/
+using KNet.Common;
+using System;
+using System.Buffers.Binary;
+using System.Net;
+using System.Net.Sockets;
+using System.Runtime.InteropServices;
+
+namespace KNet.Platform
+{
+    public unsafe static class SocketAddressHelper
+    {
+        public const int IPv6AddressSize = 28;
+        public const int IPv4AddressSize = 16;
+        public const int MaxAddressSize = 128;
+
+        public static int GetMaximumAddressSize(AddressFamily addressFamily = AddressFamily.Unspecified)
+        {
+            switch (addressFamily)
+            {
+                case AddressFamily.InterNetwork:
+                    return IPv4AddressSize;
+                case AddressFamily.InterNetworkV6:
+                    return IPv6AddressSize;
+                default:
+                    return MaxAddressSize;
+            }
+        }
+
+        public static SOCKADDR_INET* GetRawAddr(IPEndPoint endPoint, out int addressLen)
+        {
+            if (endPoint.AddressFamily == AddressFamily.InterNetwork) // IPv4
+            {
+                SOCKADDR_INET* pAddr = (SOCKADDR_INET*)OSPlatformFunc.CxPlatAlloc(sizeof(SOCKADDR_INET));
+                pAddr->Ipv4.sin_family = OSPlatformFunc.AF_INET; // AF_INET
+                pAddr->Ipv4.sin_port = (ushort)IPAddress.HostToNetworkOrder((short)endPoint.Port);
+
+                Span<byte> addrSpan = new Span<byte>(pAddr->Ipv4.sin_addr.u, 4);
+                endPoint.Address.TryWriteBytes(addrSpan, out _);
+                addressLen = Marshal.SizeOf(pAddr->Ipv4);
+                return pAddr;
+            }
+            else if (endPoint.AddressFamily == AddressFamily.InterNetworkV6) // IPv6
+            {
+                SOCKADDR_INET* pAddr = (SOCKADDR_INET*)OSPlatformFunc.CxPlatAlloc(sizeof(SOCKADDR_INET));
+                pAddr->Ipv6.sin6_family = OSPlatformFunc.AF_INET6; // AF_INET
+                pAddr->Ipv6.sin6_port = (ushort)IPAddress.HostToNetworkOrder((short)endPoint.Port);
+                pAddr->Ipv6.sin6_flowinfo = 0;
+                pAddr->Ipv6.sin6_scope_id = (uint)endPoint.Address.ScopeId;
+                Span<byte> addrSpan = new Span<byte>(pAddr->Ipv6.sin6_addr.u, 16);
+                endPoint.Address.TryWriteBytes(addrSpan, out _);
+                addressLen = Marshal.SizeOf(pAddr->Ipv6);
+                return pAddr;
+            }
+            else
+            {
+                throw new NotSupportedException("不支持的地址族");
+            }
+        }
+
+        public static IPEndPoint RawAddrTo(SOCKADDR_INET* sockaddr)
+        {
+            IPEndPoint mEndPoint = null;
+            try
+            {
+                if (sockaddr->si_family == OSPlatformFunc.AF_INET) // AF_INET (IPv4)
+                {
+                    var addr = new IPAddress(new ReadOnlySpan<byte>(sockaddr->Ipv4.sin_addr.u, 4));
+                    int port = (ushort)IPAddress.NetworkToHostOrder((short)sockaddr->Ipv4.sin_port);
+                    mEndPoint = new IPEndPoint(addr, port);
+                }
+                else if (sockaddr->si_family == OSPlatformFunc.AF_INET6) // AF_INET6 (IPv6)
+                {
+                    var addr = new IPAddress(new ReadOnlySpan<byte>(sockaddr->Ipv6.sin6_addr.u, 16));
+                    int port = (ushort)IPAddress.NetworkToHostOrder((short)sockaddr->Ipv6.sin6_port);
+                    mEndPoint = new IPEndPoint(addr, port);
+                }
+            }
+            catch (Exception e)
+            {
+                NetLog.LogError(e);
+            }
+
+            return mEndPoint;
+        }
+
+        public static void CxPlatConvertFromMappedV6(SOCKADDR_INET* InAddr, SOCKADDR_INET* OutAddr)
+        {
+            //判断是否是IPV4映射的IPV6地址，如果是转换为IPV4地址
+            NetLog.Assert(InAddr->si_family == OSPlatformFunc.AF_INET6);
+            if (IN6_IS_ADDR_V4MAPPED(&InAddr->Ipv6.sin6_addr))
+            {
+                OutAddr->si_family = OSPlatformFunc.AF_INET;
+                OutAddr->Ipv4.sin_port = InAddr->Ipv6.sin6_port;
+                OutAddr->Ipv4.sin_addr = *(IN_ADDR*)IN6_GET_ADDR_V4MAPPED(&InAddr->Ipv6.sin6_addr);
+            }
+            else if (OutAddr != InAddr)
+            {
+                *OutAddr = *InAddr;
+            }
+        }
+
+        public static void CxPlatConvertToMappedV6(SOCKADDR_INET* InAddr, SOCKADDR_INET* OutAddr)
+        {
+            if (InAddr->si_family == OSPlatformFunc.AF_INET)
+            {
+                IN6ADDR_SETV4MAPPED(&OutAddr->Ipv6, &InAddr->Ipv4);
+            } 
+            else
+            {
+                *OutAddr = *InAddr;
+            }
+        }
+
+        public static bool IN6_IS_ADDR_V4MAPPED(IN6_ADDR* a)
+        {
+            return (bool)((a->u[0] == 0) && (a->u[1] == 0) &&
+                 (a->u[2] == 0) && (a->u[3] == 0) &&
+                 (a->u[4] == 0) && (a->u[5] == 0) &&
+                 (a->u[6] == 0) && (a->u[7] == 0) &&
+                 (a->u[8] == 0) && (a->u[9] == 0) &&
+                 (a->u[10] == 0xff) && (a->u[11] == 0xff));
+        }
+
+        public static bool IN6ADDR_ISV4MAPPED(SOCKADDR_IN6* a)
+        {
+            NetLog.Assert(a->sin6_family == OSPlatformFunc.AF_INET6);
+            return IN6_IS_ADDR_V4MAPPED(&a->sin6_addr);
+        }
+
+        public static byte* IN6_GET_ADDR_V4MAPPED(IN6_ADDR* Ipv6Address)
+        {
+            return (Ipv6Address->u + 12);
+        }
+
+        public static void IN6ADDR_SETV4MAPPED(SOCKADDR_IN6* a6, SOCKADDR_IN* a4)
+        {
+            IN_ADDR temp = (IN_ADDR)a4->sin_addr;
+
+            a6->sin6_family = OSPlatformFunc.AF_INET6;
+            a6->sin6_port = a4->sin_port;
+            a6->sin6_flowinfo = 0;
+            IN6_SET_ADDR_V4MAPPED(&a6->sin6_addr, &temp);
+            a6->sin6_scope_id = 0;
+            IN4_UNCANONICALIZE_SCOPE_ID(&a4->sin_addr, &a6->sin6_scope_id);
+        }
+
+        public static void IN6_SET_ADDR_V4MAPPED(IN6_ADDR* a6, IN_ADDR* a4)
+        {
+            *a6 = new IN6_ADDR();
+            a6->u[10] = 0xFF;
+            a6->u[11] = 0xFF;
+            a6->u[12] = a4->u[0];
+            a6->u[13] = a4->u[1];
+            a6->u[14] = a4->u[2];
+            a6->u[15] = a4->u[3];
+        }
+
+        static void IN4_UNCANONICALIZE_SCOPE_ID(IN_ADDR* Address, uint* ScopeId)
+        {
+            *ScopeId = 0;
+        }
+    }
+}

@@ -1,0 +1,45 @@
+﻿/************************************Copyright*****************************************
+ *  Project    : KNet
+ *  Web        : https://github.com/1426186059/KNet
+ *  Description: C# 游戏网络库
+ *  Author     : 许珂
+ *  Since      : 2024/11/01 00:00:00
+ *  Updated    : 2026/07/28 00:39:11
+ *  Copyright  : 作者保留一切版权权利, 商业用途需支付版权费用
+ *  Contact    : 微信：AAA-2025-666-888
+************************************Copyright*****************************************/
+namespace KNet.Common
+{
+    internal class QuicListenClientPeerStateMgr
+	{
+		private event Action<QuicClientPeerBase, SOCKET_PEER_STATE> mEventFunc1 = null;
+		private event Action<QuicClientPeerBase> mEventFunc2 = null;
+
+		public void OnSocketStateChanged(QuicClientPeerBase mClientPeer)
+		{
+			MainThreadCheck.Check();
+			mEventFunc2?.Invoke(mClientPeer);
+			mEventFunc1?.Invoke(mClientPeer, mClientPeer.GetSocketState());
+		}
+
+        public void addListenClientPeerStateFunc(Action<QuicClientPeerBase, SOCKET_PEER_STATE> func)
+		{
+			mEventFunc1 += func;
+		}
+
+		public void removeListenClientPeerStateFunc(Action<QuicClientPeerBase, SOCKET_PEER_STATE> func)
+		{
+			mEventFunc1 -= func;
+		}
+
+		public void addListenClientPeerStateFunc(Action<QuicClientPeerBase> func)
+		{
+			mEventFunc2 += func;
+		}
+
+		public void removeListenClientPeerStateFunc(Action<QuicClientPeerBase> func)
+		{
+			mEventFunc2 -= func;
+		}
+	}
+}

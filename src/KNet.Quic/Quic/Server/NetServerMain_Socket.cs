@@ -1,0 +1,155 @@
+﻿/************************************Copyright*****************************************
+ *  Project    : KNet
+ *  Web        : https://github.com/1426186059/KNet
+ *  Description: C# 游戏网络库
+ *  Author     : 许珂
+ *  Since      : 2024/11/01 00:00:00
+ *  Updated    : 2026/07/28 00:39:11
+ *  Copyright  : 作者保留一切版权权利, 商业用途需支付版权费用
+ *  Contact    : 微信：AAA-2025-666-888
+************************************Copyright*****************************************/
+using KNet.Common;
+using KNet.Quic.Common;
+using System.Net;
+using System.Net.Quic;
+using System.Net.Security;
+
+namespace KNet.Quic.Server
+{
+    internal partial class NetServerMain
+    {
+        public void InitNet()
+        {
+            List<int> mPortList = IPAddressHelper.GetAvailableTcpPortList();
+            int nTryBindCount = 100;
+            while (nTryBindCount-- > 0)
+            {
+                if (mPortList.Count > 0)
+                {
+                    int nPort = mPortList[RandomTool.RandomArrayIndex(0, mPortList.Count)];
+                    InitNet(nPort);
+                    mPortList.Remove(nPort);
+                    if (GetServerState() == SOCKET_SERVER_STATE.NORMAL)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            if (GetServerState() != SOCKET_SERVER_STATE.NORMAL)
+            {
+                NetLog.LogError("Udp Server 自动查找可用端口 失败！！！");
+            }
+        }
+
+        public void InitNet(int nPort)
+        {
+            InitNet(IPAddress.Any, nPort);
+        }
+
+        public void InitNet(string Ip, int nPort)
+        {
+            InitNet(IPAddress.Parse(Ip), nPort);
+        }
+
+        private async void InitNet(IPAddress mIPAddress, int nPort)
+        {
+            if (!QuicListener.IsSupported)
+            {
+                NetLog.LogError("QUIC is not supported.");
+                return;
+            }
+
+            this.nPort = nPort;
+            this.mState = SOCKET_SERVER_STATE.NORMAL;
+
+            try
+            {
+                var options = GetQuicListenerOptions(mIPAddress, nPort);
+                mQuicListener = await QuicListener.ListenAsync(options);
+                NetLog.Log("服务器 初始化成功: " + mIPAddress + " | " + nPort);
+                StartProcessAccept();
+            }
+            catch (Exception e)
+            {
+                this.mState = SOCKET_SERVER_STATE.EXCEPTION;
+                NetLog.LogError(e.ToString());
+            }
+        }
+
+        private QuicListenerOptions GetQuicListenerOptions(IPAddress mIPAddress, int nPort)
+        {
+            var ApplicationProtocols = new List<SslApplicationProtocol>();
+            ApplicationProtocols.Add(SslApplicationProtocol.Http3);
+
+            QuicListenerOptions mOption = new QuicListenerOptions();
+            mOption.ListenEndPoint = new IPEndPoint(mIPAddress, nPort);
+            mOption.ApplicationProtocols = ApplicationProtocols;
+            mOption.ConnectionOptionsCallback = ConnectionOptionsCallback;
+            return mOption;
+        }
+
+        private ValueTask<QuicServerConnectionOptions> ConnectionOptionsCallback(QuicConnection mQuicConnection, SslClientHelloInfo mSslClientHelloInfo, CancellationToken mCancellationToken)
+        {
+            var mCert = X509CertTool.GetQuicCert();
+
+            //mCert = X509CertificateLoader.LoadCertificateFromFile("D:\\Me\\OpenSource\\KNet2\\cert.pfx");
+            NetLog.Assert(mCert != null, "GetCert() == null");
+
+            var ApplicationProtocols = new List<SslApplicationProtocol>();
+            ApplicationProtocols.Add(SslApplicationProtocol.Http11);
+            ApplicationProtocols.Add(SslApplicationProtocol.Http2);
+            ApplicationProtocols.Add(SslApplicationProtocol.Http3);
+
+            var ServerAuthenticationOptions = new SslServerAuthenticationOptions();
+            ServerAuthenticationOptions.ApplicationProtocols = ApplicationProtocols;
+            ServerAuthenticationOptions.ServerCertificate = mCert;
+            
+            QuicServerConnectionOptions mOption = new QuicServerConnectionOptions();
+            mOption.ServerAuthenticationOptions = ServerAuthenticationOptions;
+            mOption.DefaultCloseErrorCode = Config.DefaultCloseErrorCode;
+            mOption.DefaultStreamErrorCode = Config.DefaultStreamErrorCode;
+            mOption.MaxInboundBidirectionalStreams = byte.MaxValue;
+            mOption.MaxInboundUnidirectionalStreams = byte.MaxValue;
+            return ValueTask.FromResult(mOption);
+        }
+
+        private async void StartProcessAccept()
+        {
+            while (mQuicListener != null)
+            {
+                try
+                {
+                    QuicConnection connection = await mQuicListener.AcceptConnectionAsync();
+                    MultiThreadingHandleConnectedSocket(connection);
+                }
+                catch (Exception e)
+                {
+                    NetLog.LogError(e.ToString());
+                }
+            }
+        }
+
+        public int GetPort()
+        {
+            return this.nPort;
+        }
+
+        public SOCKET_SERVER_STATE GetServerState()
+        {
+            return mState;
+        }
+
+        public async void CloseNet()
+        {
+            MainThreadCheck.Check();
+            if (mQuicListener != null)
+            {
+                var mQuicListener2 = mQuicListener;
+                mQuicListener = null;
+                await mQuicListener2.DisposeAsync();
+            }
+        }
+
+    }
+}

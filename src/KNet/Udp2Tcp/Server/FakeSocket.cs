@@ -1,0 +1,116 @@
+﻿/************************************Copyright*****************************************
+ *  Project    : KNet
+ *  Web        : https://github.com/1426186059/KNet
+ *  Description: C# 游戏网络库
+ *  Author     : 许珂
+ *  Since      : 2024/11/01 00:00:00
+ *  Updated    : 2026/07/28 00:39:11
+ *  Copyright  : 作者保留一切版权权利, 商业用途需支付版权费用
+ *  Contact    : 微信：AAA-2025-666-888
+************************************Copyright*****************************************/
+using KNet.Common;
+using KNet.Udp2Tcp.Common;
+using System;
+using System.Collections.Generic;
+using System.Net;
+using System.Net.Sockets;
+
+namespace KNet.Udp2Tcp.Server
+{
+    internal class FakeSocket : IPoolItemInterface
+    {
+        private readonly NetServerMain mServerMgr;
+        private readonly Queue<NetUdpFixedSizePackage> mWaitCheckPackageQueue = new Queue<NetUdpFixedSizePackage>();
+        private int nCurrentCheckPackageCount = 0;
+        public IPEndPoint RemoteEndPoint { get; set; }
+
+        public FakeSocket(NetServerMain mServerMgr)
+        {
+            this.mServerMgr = mServerMgr;
+        }
+
+        public void MultiThreadingReceiveNetPackage(SocketAsyncEventArgs e)
+        {
+            Span<byte> mBuff = e.MemoryBuffer.Span.Slice(e.Offset, e.BytesTransferred);
+            while (true)
+            {
+                var mPackage = mServerMgr.GetObjectPoolManager().NetUdpFixedSizePackage_Pop();
+                bool bSucccess = UdpPackageEncryption.Decode(mBuff, mPackage);
+                if (bSucccess)
+                {
+                    int nReadBytesCount = mPackage.Length;
+
+                    lock (mWaitCheckPackageQueue)
+                    {
+                        mWaitCheckPackageQueue.Enqueue(mPackage);
+                        if (UdpNetCommand.orNeedCheck(mPackage.GetPackageId()))
+                        {
+                            nCurrentCheckPackageCount++;
+                        }
+                    }
+
+                    if (mBuff.Length > nReadBytesCount)
+                    {
+                        mBuff = mBuff.Slice(nReadBytesCount);
+                    }
+                    else
+                    {
+                        NetLog.Assert(mBuff.Length == nReadBytesCount);
+                        break;
+                    }
+                }
+                else
+                {
+                    mServerMgr.GetObjectPoolManager().NetUdpFixedSizePackage_Recycle(mPackage);
+                    NetLog.LogError("解码失败 !!!");
+                    break;
+                }
+            }
+        }
+
+        public int GetCurrentFrameRemainPackageCount()
+        {
+            return nCurrentCheckPackageCount;
+        }
+
+        public bool GetReceivePackage(out NetUdpFixedSizePackage mPackage)
+        {
+            lock (mWaitCheckPackageQueue)
+            {
+                if (mWaitCheckPackageQueue.TryDequeue(out mPackage))
+                {
+                    if (UdpNetCommand.orNeedCheck(mPackage.GetPackageId()))
+                    {
+                        nCurrentCheckPackageCount--;
+                    }
+                    return true;
+                }
+                return false;
+            }
+        }
+
+        public bool SendToAsync(SocketAsyncEventArgs mArg)
+        {
+            return this.mServerMgr.SendToAsync(mArg);
+        }
+
+        public void Reset()
+        {
+            MainThreadCheck.Check();
+            lock (mWaitCheckPackageQueue)
+            {
+                while (mWaitCheckPackageQueue.TryDequeue(out var mPackage))
+                {
+                    mServerMgr.GetObjectPoolManager().NetUdpFixedSizePackage_Recycle(mPackage);
+                }
+            }
+        }
+
+        public void Close()
+        {
+            this.mServerMgr.RemoveFakeSocket(this);
+        }
+
+        public void Dispose() { }
+    }
+}

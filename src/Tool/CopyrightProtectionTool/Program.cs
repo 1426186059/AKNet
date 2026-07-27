@@ -9,14 +9,14 @@ internal class Program
 
     static readonly string[] DirList =
     {
-        "AKNet.Common",
-        "AKNet",
-        "AKNet.Extentions.Protobuf",
-        "AKNet.MSQuic",
-        "AKNet.Quic",
-        "AKNet.WebSocket",
-        "AKNet.Platform",
-        "AKNet.LinuxTcp"
+        "KNet.Common",
+        "KNet",
+        "KNet.Extentions.Protobuf",
+        "KNet.MSQuic",
+        "KNet.Quic",
+        "KNet.WebSocket",
+        "KNet.Platform",
+        "KNet.LinuxTcp"
     };
 
     static readonly string[] SkipDirs = { "bin", "obj", ".git", ".vs" };
@@ -116,8 +116,8 @@ internal class Program
         {
             ["$HEAD$"]        = Head,
             ["$END$"]         = End,
-            ["$ProjectName$"] = "AKNet",
-            ["$Web$"]         = "https://github.com/1426186059/AKNet",
+            ["$ProjectName$"] = "KNet",
+            ["$Web$"]         = "https://github.com/1426186059/KNet",
             ["$Author$"]      = "许珂",
             ["$StartTime$"]   = "2024/11/01 00:00:00",
             ["$ModifyTime$"]  = DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss"),

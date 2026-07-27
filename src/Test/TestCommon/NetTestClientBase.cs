@@ -1,5 +1,5 @@
-﻿using AKNet.Common;
-using AKNet.Extentions.Protobuf;
+﻿using KNet.Common;
+using KNet.Extentions.Protobuf;
 using System.Diagnostics;
 using TestCommon;
 using TestProtocol;

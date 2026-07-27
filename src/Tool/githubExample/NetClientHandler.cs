@@ -1,5 +1,5 @@
-using AKNet.Common;
-using AKNet.Extentions.Protobuf;
+using KNet.Common;
+using KNet.Extentions.Protobuf;
 using TestProtocol;
 
 namespace githubExample
@@ -49,7 +49,7 @@ namespace githubExample
         private void SendMsg()
         {
             TESTChatMessage mdata = new TESTChatMessage();
-            mdata.TalkMsg = "Hello, AkNet Server";
+            mdata.TalkMsg = "Hello, KNet Server";
             mNetClient.SendNetData(COMMAND_TESTCHAT, mdata);
         }
     }

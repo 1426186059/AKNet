@@ -1,0 +1,146 @@
+﻿/************************************Copyright*****************************************
+ *  Project    : KNet
+ *  Web        : https://github.com/1426186059/KNet
+ *  Description: C# 游戏网络库
+ *  Author     : 许珂
+ *  Since      : 2024/11/01 00:00:00
+ *  Updated    : 2026/07/28 00:39:11
+ *  Copyright  : 作者保留一切版权权利, 商业用途需支付版权费用
+ *  Contact    : 微信：AAA-2025-666-888
+************************************Copyright*****************************************/
+using KNet.Common;
+using KNet.Udp3Tcp.Common;
+using System;
+using System.Net;
+using System.Net.Sockets;
+
+namespace KNet.Udp3Tcp.Server
+{
+    internal partial class ClientPeer
+    {
+        public void HandleConnectedSocket(FakeSocket mSocket)
+        {
+            MainThreadCheck.Check();
+            NetLog.Assert(mSocket != null, "mSocket == null");
+
+            this.mSocket = mSocket;
+            this.SendArgs.RemoteEndPoint = mSocket.RemoteEndPoint;
+            SetSocketState(SOCKET_PEER_STATE.CONNECTED);
+        }
+
+        public IPEndPoint GetIPEndPoint()
+        {
+            if (mSocket != null)
+            {
+                return mSocket.RemoteEndPoint;
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        public int GetCurrentFrameRemainPackageCount()
+        {
+            return mSocket.GetCurrentFrameRemainPackageCount();
+        }
+
+        public bool GetReceivePackage(out NetUdpReceiveFixedSizePackage mPackage)
+        {
+            return mSocket.GetReceivePackage(out mPackage);
+        }
+
+        public void StartSendEventArg(SocketAsyncEventArgs e)
+        {
+            bool bIOPending = false;
+            if (mSocket != null)
+            {
+                try
+                {
+                    bIOPending = mSocket.SendToAsync(e);
+                }
+                catch (Exception ex)
+                {
+                    bSendIOContexUsed = false;
+                    if (mSocket != null)
+                    {
+                        NetLog.LogException(ex);
+                    }
+                }
+            }
+            
+            if(!bIOPending)
+            {
+                ProcessSend(null, e);
+            }
+        }
+
+        private void ProcessSend(object sender, SocketAsyncEventArgs e)
+        {
+            if (e.SocketError == SocketError.Success)
+            {
+                SendNetStream2();
+            }
+            else
+            {
+                NetLog.LogError(e.SocketError);
+                SetSocketState(SOCKET_PEER_STATE.DISCONNECTED);
+                bSendIOContexUsed = false;
+            }
+        }
+
+        public void SendNetPackage2(NetUdpSendFixedSizePackage mPackage)
+        {
+            MainThreadCheck.Check();
+            lock (mSendStreamList)
+            {
+                var mBufferItem = mSendStreamList.BeginSpan();
+                mBufferItem.AddSpan(UdpPackageEncryption.EncodeHead(mPackage));
+                if (mPackage.WindowBuff != null)
+                {
+                    mPackage.WindowBuff.CopyTo(mBufferItem.GetCanWriteSpan(), mPackage.WindowOffset, mPackage.WindowLength);
+                    mBufferItem.nSpanLength += mPackage.WindowLength;
+                }
+                mSendStreamList.FinishSpan();
+            }
+
+            if (!bSendIOContexUsed)
+            {
+                bSendIOContexUsed = true;
+                //System.Threading.Tasks.Task.Run(SendNetStream2);
+                SendNetStream2();
+            }
+        }
+        
+        private void SendNetStream2()
+        {
+            var mSendArgSpan = SendArgs.Buffer.AsSpan();
+            int nSendBytesCount = 0;
+            lock (mSendStreamList)
+            {
+                nSendBytesCount += mSendStreamList.WriteToMax(mSendArgSpan);
+            }
+
+            if (nSendBytesCount > 0)
+            {
+                nLastSendBytesCount = nSendBytesCount;
+                SendArgs.SetBuffer(0, nSendBytesCount);
+                StartSendEventArg(SendArgs);
+            }
+            else
+            {
+                bSendIOContexUsed = false;
+            }
+        }
+
+        public void CloseSocket()
+        {
+            if (mSocket != null)
+            {
+                mSocket.Close();
+                mSocket = null;
+            }
+        }
+
+    }
+}

@@ -1,0 +1,96 @@
+﻿/************************************Copyright*****************************************
+ *  Project    : KNet
+ *  Web        : https://github.com/1426186059/KNet
+ *  Description: C# 游戏网络库
+ *  Author     : 许珂
+ *  Since      : 2024/11/01 00:00:00
+ *  Updated    : 2026/07/28 00:39:11
+ *  Copyright  : 作者保留一切版权权利, 商业用途需支付版权费用
+ *  Contact    : 微信：AAA-2025-666-888
+************************************Copyright*****************************************/
+using KNet.Common;
+using KNet.LinuxTcp.Common;
+using System;
+
+namespace KNet.LinuxTcp.Client
+{
+    internal partial class NetClientMain
+    {
+        private void SendHeartBeat()
+        {
+            SendInnerNetData(UdpNetCommand.COMMAND_HEARTBEAT);
+        }
+
+        public void ResetSendHeartBeatCdTime()
+        {
+            fMySendHeartBeatCdTime = 0.0;
+        }
+
+        public void ReceiveHeartBeat()
+        {
+            fReceiveHeartBeatTime = 0.0;
+        }
+
+        public void SendConnect()
+        {
+            fConnectCdTime = 0.0;
+            fDisConnectCdTime = 0.0;
+            fReConnectServerCdTime = 0.0;
+            fReceiveHeartBeatTime = 0.0;
+            fMySendHeartBeatCdTime = 0.0;
+
+            this.Reset();
+            mUdpCheckPool.InitConnect();
+            SetSocketState(SOCKET_PEER_STATE.CONNECTING);
+            NetLog.Log("LinuxTcp Client: Udp 正在连接服务器: " + remoteEndPoint);
+            SendInnerNetData(UdpNetCommand.COMMAND_CONNECT);
+        }
+
+        public void SendDisConnect()
+        {
+            fConnectCdTime = 0.0;
+            fDisConnectCdTime = 0.0;
+            fReConnectServerCdTime = 0.0;
+            fReceiveHeartBeatTime = 0.0;
+            fMySendHeartBeatCdTime = 0.0;
+
+            this.Reset();
+            SetSocketState(SOCKET_PEER_STATE.DISCONNECTING);
+            NetLog.Log("LinuxTcp Client: Udp 正在 断开服务器: " + remoteEndPoint);
+            SendInnerNetData(UdpNetCommand.COMMAND_DISCONNECT);
+        }
+
+        public void ReceiveConnect(sk_buff skb)
+        {
+            if (GetSocketState() != SOCKET_PEER_STATE.CONNECTED)
+            {
+                fConnectCdTime = 0.0;
+                fDisConnectCdTime = 0.0;
+                fReConnectServerCdTime = 0.0;
+                fReceiveHeartBeatTime = 0.0;
+                fMySendHeartBeatCdTime = 0.0;
+
+                this.Reset();
+                mUdpCheckPool.FinishConnect(skb);
+                SetSocketState(SOCKET_PEER_STATE.CONNECTED);
+                NetLog.Log("LinuxTcp Client: Udp连接服务器 成功 ! ");
+            }
+        }
+
+        public void ReceiveDisConnect()
+        {
+            if (GetSocketState() != SOCKET_PEER_STATE.DISCONNECTED)
+            {
+                fConnectCdTime = 0.0;
+                fDisConnectCdTime = 0.0;
+                fReConnectServerCdTime = 0.0;
+                fReceiveHeartBeatTime = 0.0;
+                fMySendHeartBeatCdTime = 0.0;
+
+                this.Reset();
+                SetSocketState(SOCKET_PEER_STATE.DISCONNECTED);
+                NetLog.Log("LinuxTcp Client: Udp 断开服务器 成功 ! ");
+            }
+        }
+    }
+}
