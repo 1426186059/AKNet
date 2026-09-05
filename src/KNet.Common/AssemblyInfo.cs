@@ -1,4 +1,4 @@
-﻿using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("KNet")]
 [assembly: InternalsVisibleTo("KNet.MSQuic")]
@@ -7,3 +7,4 @@
 
 [assembly: InternalsVisibleTo("KNet.WebSocket.Server")]
 [assembly: InternalsVisibleTo("KNet.WebSocket.Client")]
+[assembly: InternalsVisibleTo("KNet.WebSocket.Client.JS")]

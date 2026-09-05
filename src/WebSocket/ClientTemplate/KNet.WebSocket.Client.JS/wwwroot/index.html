@@ -1,26 +1,94 @@
 <!DOCTYPE html>
 <!--  Licensed to the .NET Foundation under one or more agreements. -->
 <!-- The .NET Foundation licenses this file to you under the MIT license. -->
-<html>
+<html lang="zh-CN">
 
 <head>
-  <title>KNet.WebSocket.Client.JS</title>
+  <title>KNet.WebSocket.Client.JS 性能测试</title>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="preload" id="webassembly" />
   <script type="importmap"></script>
   <script type='module' src="main#[.{fingerprint}].js"></script>
+  <style>
+    body { font-family: "Microsoft YaHei", sans-serif; margin: 16px; background: #1e1e1e; color: #d4d4d4; }
+    h1 { color: #569cd6; }
+    .row { margin: 8px 0; }
+    label { display: inline-block; width: 80px; }
+    input { background: #2d2d2d; color: #d4d4d4; border: 1px solid #555; padding: 4px 8px; }
+    button { background: #0e639c; color: #fff; border: none; padding: 6px 14px; cursor: pointer; margin-right: 6px; }
+    button:hover { background: #1177bb; }
+    .stat { background: #2d2d2d; padding: 6px 12px; display: inline-block; margin-right: 12px; border-radius: 4px; }
+    .stat b { color: #4ec9b0; }
+    #log { background: #000; color: #b5cea8; padding: 8px; height: 220px; overflow-y: auto; font-family: Consolas, monospace; font-size: 12px; border: 1px solid #444; }
+    select { background: #2d2d2d; color: #d4d4d4; border: 1px solid #555; padding: 4px; }
+  </style>
 </head>
 
 <body>
-  <h1>Stopwatch</h1>
-  <p>
-    Time elapsed in .NET is <span id="time"><i>loading...</i></span>
-  </p>
-  <p>
-    <button id="pause">Pause</button>
-    <button id="reset">Reset</button>
-  </p>
+  <h1>KNet 浏览器 WebSocket 客户端 · 性能测试</h1>
+
+  <div class="row">
+    <label>版本:</label>
+    <select id="version">
+      <option value="2">V2 — C# 厚封装（JS 仅 WebSocket）</option>
+      <option value="1">V1 — JS 厚封装（完整 KNet 在 JS）</option>
+    </select>
+    <button id="applyVersion">应用版本</button>
+  </div>
+
+  <div class="row">
+    <label>Host:</label>
+    <input id="host" value="127.0.0.1" />
+    <label>Port:</label>
+    <input id="port" value="18888" style="width:80px" />
+    <button id="connect">连接</button>
+    <button id="disconnect">断开</button>
+  </div>
+
+  <div class="row">
+    <label>突发发送:</label>
+    <input id="count" value="1000" style="width:80px" /> 包 x
+    <input id="bodySize" value="64" style="width:80px" /> 字节
+    <button id="burst">发送</button>
+    <button id="clearLog">清空日志</button>
+  </div>
+
+  <div class="row">
+    <span class="stat">状态: <b id="state">未连接</b></span>
+    <span class="stat">发送: <b id="sent">0</b></span>
+    <span class="stat">接收: <b id="recv">0</b></span>
+    <span class="stat">运行: <b id="uptime">00:00:00</b></span>
+  </div>
+
+  <div id="log"></div>
+
+  <script>
+    // 等待 main.js 暴露 knetExports 后绑定 UI
+    const bindUI = () => {
+      const e = window.knetExports;
+      if (!e) { setTimeout(bindUI, 100); return; }
+      const panel = e.PerfPanel || e; // namespace may vary
+
+      const call = (name, ...args) => {
+        try {
+          if (panel[name]) panel[name](...args);
+          else if (e.KNet && e.KNet.WebSocket && e.KNet.WebSocket.Client && e.KNet.WebSocket.Client.PerfPanel && e.KNet.WebSocket.Client.PerfPanel[name])
+            e.KNet.WebSocket.Client.PerfPanel[name](...args);
+        } catch (err) { console.error(err); }
+      };
+
+      document.getElementById('applyVersion').onclick = () =>
+        call('SetVersion', parseInt(document.getElementById('version').value));
+      document.getElementById('connect').onclick = () =>
+        call('Connect', document.getElementById('host').value, document.getElementById('port').value);
+      document.getElementById('disconnect').onclick = () => call('Disconnect');
+      document.getElementById('burst').onclick = () =>
+        call('BurstSend', parseInt(document.getElementById('count').value), parseInt(document.getElementById('bodySize').value));
+      document.getElementById('clearLog').onclick = () => call('ClearLog');
+    };
+    bindUI();
+  </script>
 </body>
 
 </html>
