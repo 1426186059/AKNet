@@ -20,7 +20,7 @@ using System.Threading.Tasks;
 
 namespace KNet.WebSocket.Client
 {
-    internal partial class NetClientMain : NetClientInterface, ClientPeerBase
+    internal partial class NetClientMain : NetClientMainBase, ClientPeerBase
     {
         private readonly CryptoMgr mCryptoMgr;
         private readonly ListenNetPackageMgr mPackageManager = null;
