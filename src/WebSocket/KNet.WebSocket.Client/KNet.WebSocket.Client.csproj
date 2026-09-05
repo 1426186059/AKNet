@@ -10,4 +10,8 @@
     <EmbeddedResource Include="KNet.WebSocket.jslib" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\KNet.Common\KNet.Common.csproj" />
+  </ItemGroup>
+
 </Project>

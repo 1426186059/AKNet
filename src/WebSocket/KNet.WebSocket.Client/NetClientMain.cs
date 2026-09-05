@@ -9,14 +9,9 @@
  *  Contact    : 微信：AAA-2025-666-888
 ************************************Copyright*****************************************/
 using KNet.Common;
-using System;
 using System.Net;
-#if !UNITY_WEBGL || UNITY_EDITOR
 using System.Net.WebSockets;
-#endif
 using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace KNet.WebSocket.Client
 {

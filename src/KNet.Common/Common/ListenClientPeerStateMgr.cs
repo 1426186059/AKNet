@@ -13,7 +13,7 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("KNet")]
 [assembly: InternalsVisibleTo("KNet.MSQuic")]
 [assembly: InternalsVisibleTo("KNet.LinuxTcp")]
-[assembly: InternalsVisibleTo("KNet.WebSocket")]
+[assembly: InternalsVisibleTo("KNet.WebSocket.Server")]
 namespace KNet.Common
 {
     internal class ListenClientPeerStateMgr
