@@ -13,7 +13,7 @@ using System;
 
 namespace KNet.WebSocket.Client
 {
-    internal partial class NetClientMain
+    public partial class NetClientMain
     {
         public void SendNetData(ushort nPackageId)
         {

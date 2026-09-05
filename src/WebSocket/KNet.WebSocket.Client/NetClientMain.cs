@@ -15,7 +15,7 @@ using System.Runtime.CompilerServices;
 
 namespace KNet.WebSocket.Client
 {
-    internal partial class NetClientMain : NetClientMainBase, ClientPeerBase
+    public partial class NetClientMain : NetClientInterface
     {
         private readonly CryptoMgr mCryptoMgr;
         private readonly ListenNetPackageMgr mPackageManager = null;

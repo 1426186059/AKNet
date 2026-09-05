@@ -8,8 +8,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\KNet.Common\KNet.Common.csproj" />
+    <ProjectReference Include="..\..\..\WebSocket\KNet.WebSocket.Server\KNet.WebSocket.Server.csproj" />
     <ProjectReference Include="..\..\TestCommon\TestCommon.csproj" />
-    <ProjectReference Include="..\..\..\KNet.WebSocket\KNet.WebSocket.csproj" />
   </ItemGroup>
 
 </Project>

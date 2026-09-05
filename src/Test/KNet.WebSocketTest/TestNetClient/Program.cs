@@ -4,7 +4,7 @@ namespace TestNetClient
 {
     public class NetHandler : NetTestClientBase
     {
-        public override NetClientMainBase Create()
+        public override NetClientInterface Create()
         {
             return new NetClientMain(NetType.WebSocket);
         }

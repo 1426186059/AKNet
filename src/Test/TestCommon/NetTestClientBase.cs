@@ -24,7 +24,7 @@ namespace TestNetClient
             mClientList.Clear();
         }
 
-        public abstract NetClientMainBase Create();
+        public abstract NetClientInterface Create();
         public abstract void OnTestFinish();
 
         public const int nClientCount = 100;
@@ -34,7 +34,7 @@ namespace TestNetClient
         public const int nSumSendPackageCount = nClientCount * nSingleCleintSendMaxPackageCount;
         int nReceivePackageCount = 0;
         int nSendPackageCount = 0;
-        List<NetClientMainBase> mClientList = new List<NetClientMainBase>();
+        List<NetClientInterface> mClientList = new List<NetClientInterface>();
         Stopwatch mStopWatch = new Stopwatch();
         readonly uint[] mClientSendIdArray = new uint[nClientCount];
         readonly int[] mClientSendPackageCount = new int[nClientCount];
@@ -71,7 +71,7 @@ namespace TestNetClient
             nSortId = 0;
             for (int i = 0; i < nClientCount; i++)
             {
-                NetClientMainBase mNetClient = Create();
+                NetClientInterface mNetClient = Create();
                 mClientList.Add(mNetClient);
                 mNetClient.addNetListenFunc(COMMAND_TESTCHAT, ReceiveMessage);
                 mNetClient.ConnectServer("127.0.0.1", 6000);

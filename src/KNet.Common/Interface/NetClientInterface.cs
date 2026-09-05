@@ -12,7 +12,7 @@ using System;
 using System.Net;
 namespace KNet.Common
 {
-    public interface NetClientInterface:IDisposable
+    public interface NetClientInterface:ClientPeerBase, IDisposable
     {
         void ConnectServer(string Ip, int nPort);
         bool DisConnectServer();

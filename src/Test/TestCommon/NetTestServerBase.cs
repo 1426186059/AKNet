@@ -11,12 +11,12 @@ namespace TestNetServer
         private bool bCheck_CheckIsClientPeerWrap_2 = false;
         private bool bCheck_CheckIsClientPeerWrap_3 = false;
 
-        NetServerMainBase mNetServer = null;
+        NetServerInterface mNetServer = null;
         private readonly List<ClientPeerBase> mClientPeerList = new List<ClientPeerBase>();
         const int NetCommand_COMMAND_TESTCHAT = 1000;
         const int NetCommand_COMMAND_SPACEBAR_CHAT = 1001;
 
-        public abstract NetServerMainBase Create();
+        public abstract NetServerInterface Create();
 
         public void Start()
         {
