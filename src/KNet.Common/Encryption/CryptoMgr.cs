@@ -25,11 +25,22 @@ namespace KNet.Common
 
         public ReadOnlySpan<byte> Encode(ushort nPackageId, ReadOnlySpan<byte> mBufferSegment)
         {
-            return mNetPackageEncryption.Encode(nPackageId, mBufferSegment);
+            if (nPackageId == 0)
+            {
+                return mBufferSegment;
+            }
+            else
+            {
+                return mNetPackageEncryption.Encode(nPackageId, mBufferSegment);
+            }
         }
 
         public bool Decode(NetStreamCircularBuffer mReceiveStreamList, NetStreamReceivePackage mPackage)
         {
+            if(mPackage.nPackageId == 0)
+            {
+                return true;
+            }
             return mNetPackageEncryption.Decode(mReceiveStreamList, mPackage);
         }
     }
