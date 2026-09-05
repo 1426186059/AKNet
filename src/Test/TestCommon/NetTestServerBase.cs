@@ -32,7 +32,7 @@ namespace TestNetServer
             mNetServer.addNetListenFunc(NetCommand_COMMAND_TESTCHAT, ReceiveMessage);
             mNetServer.addNetListenFunc(NetCommand_COMMAND_SPACEBAR_CHAT, ReceiveSpacebarMessage);
             mNetServer.addListenClientPeerStateFunc(OnClientPeerStateChanged);
-            mNetServer.InitNet(6000);
+            mNetServer.InitNet(9000);
         }
 
         private void CheckIsClientPeerWrap(ClientPeerBase peer)

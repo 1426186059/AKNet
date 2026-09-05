@@ -23,7 +23,7 @@ namespace KNet.WebSocket.Client
     /// WebSocket 轮询模型移植自 Web_Mir3（JSBind/BrowserWebSocket.cs + jsengine/core/websocket.js）：
     /// JS 把二进制帧入队，C# 每帧 BrowserServicePoll 取出写入接收环形缓冲。
     /// </summary>
-    public partial class NetClientMain : NetClientMainBase, ClientPeerBase
+    public partial class NetClientMain : NetClientInterface
     {
         private readonly CryptoMgr mCryptoMgr;
         private readonly ListenNetPackageMgr mPackageManager = null;

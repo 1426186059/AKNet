@@ -167,7 +167,9 @@ namespace KNet.WebSocket.Client
 
         private void DisConnectedWithError()
         {
-            if (GetSocketState() == SOCKET_PEER_STATE.DISCONNECTING)
+            if (GetSocketState() == SOCKET_PEER_STATE.CONNECTING)
+                SetSocketState(SOCKET_PEER_STATE.DISCONNECTED);
+            else if (GetSocketState() == SOCKET_PEER_STATE.DISCONNECTING)
                 SetSocketState(SOCKET_PEER_STATE.DISCONNECTED);
             else if (GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
             {

@@ -48,8 +48,13 @@ internal static partial class PerfPanel
     {
         if (_client != null)
         {
-            AppendLog("#log", "已连接，无法切换版本。请先断开。");
-            return;
+            if (_client.GetSocketState() != SOCKET_PEER_STATE.DISCONNECTED)
+            {
+                AppendLog("#log", "已连接，无法切换版本。请先断开。");
+                return;
+            }
+            _client.Dispose();
+            _client = null;
         }
         _version = v == 1 ? NetType.WebSocketJS_V1 : NetType.WebSocketJS_V2;
         AppendLog("#log", $"版本切换为: {(_version == NetType.WebSocketJS_V1 ? "V1 (JS厚封装)" : "V2 (C#厚封装)")}");
@@ -60,8 +65,17 @@ internal static partial class PerfPanel
     {
         if (_client != null)
         {
-            AppendLog("#log", "已连接，请先断开。");
-            return;
+            if (_client.GetSocketState() == SOCKET_PEER_STATE.DISCONNECTED)
+            {
+                // 上次连接失败/已断开，释放后允许重新连接
+                _client.Dispose();
+                _client = null;
+            }
+            else
+            {
+                AppendLog("#log", "已连接，请先断开。");
+                return;
+            }
         }
         if (!int.TryParse(portText, out int port))
         {

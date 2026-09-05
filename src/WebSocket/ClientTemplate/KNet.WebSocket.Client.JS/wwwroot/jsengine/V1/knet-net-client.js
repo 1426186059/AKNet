@@ -44,8 +44,8 @@ const encodeFrame = (packageId, body) => {
     frame[6] = packageId & 0xff;
     frame[7] = (bodyLen >> 8) & 0xff;     // BE16
     frame[8] = bodyLen & 0xff;
-    // XOR 加密头 [1..8]
-    for (let i = 1; i < HEADER_SIZE; i++) {
+    // XOR 加密头 [1..7]（最后 1 字节为 body 长度低位，不加密，与 C# 对齐）
+    for (let i = 1; i < HEADER_SIZE - 1; i++) {
         frame[i] = xorByte(i, frame[i], token);
     }
     // body 明文
@@ -61,12 +61,14 @@ const decodeFrames = (buf) => {
     let pos = 0;
     while (pos + HEADER_SIZE <= buf.length) {
         const token = buf[pos];
-        // 解密头
+        // 解密头 [1..7]（与 C# 编解码范围一致）
         const head = new Uint8Array(HEADER_SIZE);
         head[0] = token;
-        for (let i = 1; i < HEADER_SIZE; i++) {
+        for (let i = 1; i < HEADER_SIZE - 1; i++) {
             head[i] = xorByte(i, buf[pos + i], token);
         }
+        head[7] = buf[pos + 7];
+        head[8] = buf[pos + 8];
         // 校验 'KNET'
         if (head[1] !== CHECK[0] || head[2] !== CHECK[1] ||
             head[3] !== CHECK[2] || head[4] !== CHECK[3]) {

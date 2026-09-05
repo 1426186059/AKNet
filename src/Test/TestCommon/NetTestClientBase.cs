@@ -74,7 +74,7 @@ namespace TestNetClient
                 NetClientInterface mNetClient = Create();
                 mClientList.Add(mNetClient);
                 mNetClient.addNetListenFunc(COMMAND_TESTCHAT, ReceiveMessage);
-                mNetClient.ConnectServer("127.0.0.1", 6000);
+                mNetClient.ConnectServer("127.0.0.1", 9000);
                 mNetClient.SetName("C" + i);
                 mNetClient.SetID((uint)i);
 
