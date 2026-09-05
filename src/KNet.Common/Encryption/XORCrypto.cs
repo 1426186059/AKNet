@@ -9,8 +9,11 @@
  *  Contact    : 微信：AAA-2025-666-888
 ************************************Copyright*****************************************/
 using System;
+using System.Runtime.CompilerServices;
 using System.Text;
 
+[assembly: InternalsVisibleTo("KNet.WebSocket.Server")]
+[assembly: InternalsVisibleTo("KNet.WebSocket.Client")]
 namespace KNet.Common
 {
     internal static class XORCrypto

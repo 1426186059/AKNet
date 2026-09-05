@@ -7,5 +7,3 @@
 
 [assembly: InternalsVisibleTo("KNet.WebSocket.Server")]
 [assembly: InternalsVisibleTo("KNet.WebSocket.Client")]
-[assembly: InternalsVisibleTo("KNet.WebSocket.Client.JS")]
-[assembly: InternalsVisibleTo("KNet.WebSocket.Client.Unity")]
