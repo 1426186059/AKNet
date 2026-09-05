@@ -90,9 +90,8 @@ const decodeFrames = (buf) => {
 export const netConnect = (url) => {
     let id = -1;
     try {
-        if (typeof location !== 'undefined' && location.protocol === 'https:' && url.startsWith('ws://')) {
-            url = 'wss://' + url.slice('ws://'.length);
-        }
+        // 注意：KNet 测试服务器是明文 ws，不做 ws->wss 自动升级（否则会被当成 TLS 连接而失败）。
+        // 性能测试页请用 http:// 打开。
         const ws = new WebSocket(url);
         ws.binaryType = 'arraybuffer';
         id = nextId++;

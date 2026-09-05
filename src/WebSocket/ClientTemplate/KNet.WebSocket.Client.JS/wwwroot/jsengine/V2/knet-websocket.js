@@ -9,10 +9,9 @@ let nextId = 1;
 export const wsConnect = (url) => {
     let id = -1;
     try {
-        // HTTPS 页面下浏览器禁止混合内容（ws://），自动升级为 wss://
-        if (typeof location !== 'undefined' && location.protocol === 'https:' && url.startsWith('ws://')) {
-            url = 'wss://' + url.slice('ws://'.length);
-        }
+        // 注意：KNet 测试服务器是明文 ws。不要做 ws->wss 自动升级，
+        // 否则会被当成 TLS 连接而秒关（ERR_CONNECTION_CLOSED）。
+        // 因此性能测试页必须用 http:// 打开（不要用 https://）。
         const ws = new WebSocket(url);
         ws.binaryType = 'arraybuffer';
         id = nextId++;
@@ -23,7 +22,7 @@ export const wsConnect = (url) => {
             inst.messages.push(data);
         };
         ws.onclose = () => { inst.open = false; };
-        ws.onerror = () => { inst.open = false; };
+        ws.onerror = (e) => { inst.open = false; console.error('[knet.ws] connection error (服务器未监听/端口不对/协议不匹配?)', e); };
         instances[id] = inst;
     } catch (e) {
         console.error('[knet.ws] connect failed', e);

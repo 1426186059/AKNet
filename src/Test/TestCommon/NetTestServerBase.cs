@@ -66,8 +66,10 @@ namespace TestNetServer
         {
             mNetServer.Update(fElapsedTime);
 
-            if (Console.KeyAvailable)
+            try
             {
+                if (Console.KeyAvailable)
+                {
                 var key = Console.ReadKey(true);
                 if (key.Key == ConsoleKey.Delete)
                 {
@@ -83,6 +85,11 @@ namespace TestNetServer
                         NetLog.Log("Delete键按下，但没有已连接的客户端");
                     }
                 }
+            }
+            }
+            catch (System.InvalidOperationException)
+            {
+                // 无控制台/输入被重定向（如后台托管）时 Console.KeyAvailable 不可用，忽略
             }
         }
 
@@ -100,8 +107,9 @@ namespace TestNetServer
                 CheckIsClientPeerWrap(peer);
             }
 
-            TESTChatMessage mdata = Proto3Tool.GetData<TESTChatMessage>(mPackage);
-            peer.SendNetData(NetCommand_COMMAND_TESTCHAT, mdata);
+            // 性能测试：客户端发送的是原始字节负载（非 protobuf），服务器原样回显即可。
+            // 若按 protobuf(TESTChatMessage) 解析会抛 InvalidProtocolBufferException（invalid tag）。
+            peer.SendNetData(mPackage.GetPackageId(), mPackage.GetData());
         }
 
         private void ReceiveSpacebarMessage(ClientPeerBase peer, NetPackage mPackage)
@@ -112,8 +120,8 @@ namespace TestNetServer
                 CheckIsClientPeerWrap(peer);
             }
 
-            TESTChatMessage mdata = Proto3Tool.GetData<TESTChatMessage>(mPackage);
-            NetLog.Log($"[服务器收到空格消息] ClientId={mdata.NClientId}, SortId={mdata.NSortId}, TalkMsg={mdata.TalkMsg}");
+            NetLog.Log($"[服务器收到空格消息] 字节数={mPackage.GetData().Length}");
+            peer.SendNetData(mPackage.GetPackageId(), mPackage.GetData());
         }
     }
 }
