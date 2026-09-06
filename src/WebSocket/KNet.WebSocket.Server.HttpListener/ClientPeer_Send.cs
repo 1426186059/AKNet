@@ -1,24 +1,63 @@
-// 客户端连接封装（分部类之二：发送相关）。
+// 客户端连接封装（分部类之二：发送相关，走 KNet 协议编码）。
 using KNet.Common;
 using System;
 using System.Net.WebSockets;
-using System.Threading;
+using System.Threading.Tasks;
 
 namespace KNet.WebSocket.Server
 {
     public partial class ClientPeer
     {
-        public void SendNetData(ushort nPackageId) { }
-        public void SendNetData(ushort nPackageId, byte[] data) { SendBinary(data); }
-        public void SendNetData(ushort nPackageId, ReadOnlySpan<byte> buffer) { SendBinary(buffer.ToArray()); }
-        public void SendNetData(NetPackage mNetPackage) { SendBinary(mNetPackage.GetData().ToArray()); }
-        public void SendNetData(byte[] data) { SendBinary(data); }
-        public void SendNetData(ReadOnlySpan<byte> data) { SendBinary(data.ToArray()); }
+        public void SendNetData(ushort nPackageId)
+        {
+            if (GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
+                SendNetStream(mCryptoMgr.Encode(nPackageId, ReadOnlySpan<byte>.Empty));
+        }
 
-        private void SendBinary(byte[] data)
+        public void SendNetData(ushort nPackageId, byte[] data)
+        {
+            if (GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
+                SendNetStream(mCryptoMgr.Encode(nPackageId, data));
+        }
+
+        public void SendNetData(ushort nPackageId, ReadOnlySpan<byte> buffer)
+        {
+            if (GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
+                SendNetStream(mCryptoMgr.Encode(nPackageId, buffer));
+        }
+
+        public void SendNetData(NetPackage mNetPackage)
+        {
+            if (GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
+                SendNetStream(mCryptoMgr.Encode(mNetPackage.GetPackageId(), mNetPackage.GetData()));
+        }
+
+        public void SendNetData(byte[] data)
+        {
+            if (GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
+                SendNetStream(mCryptoMgr.Encode(0, data));
+        }
+
+        public void SendNetData(ReadOnlySpan<byte> data)
+        {
+            if (GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
+                SendNetStream(mCryptoMgr.Encode(0, data));
+        }
+
+        // 编码结果指向 CryptoMgr 内部缓冲，须立即拷贝为独立数组再发送
+        private void SendNetStream(ReadOnlySpan<byte> mBufferSegment)
         {
             if (mSocketPeerState != SOCKET_PEER_STATE.CONNECTED) return;
-            try { mWs.SendAsync(new ArraySegment<byte>(data), WebSocketMessageType.Binary, true, CancellationToken.None).GetAwaiter().GetResult(); }
+            byte[] buf = mBufferSegment.ToArray();
+            _ = SendBinaryAsync(buf);
+        }
+
+        private async Task SendBinaryAsync(byte[] data)
+        {
+            try
+            {
+                await mWs.SendAsync(new ArraySegment<byte>(data), WebSocketMessageType.Binary, true, System.Threading.CancellationToken.None);
+            }
             catch { }
         }
     }

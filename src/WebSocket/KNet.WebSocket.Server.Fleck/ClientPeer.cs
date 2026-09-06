@@ -9,13 +9,19 @@ namespace KNet.WebSocket.Server
     public partial class ClientPeer : ClientPeerBase
     {
         private readonly IWebSocketConnection mSocket;
+        private readonly NetServerMain mServerMgr;
         private SOCKET_PEER_STATE mSocketPeerState = SOCKET_PEER_STATE.DISCONNECTED;
         private IPEndPoint mIPEndPoint = null;
         private string mName = string.Empty;
         private uint mID;
         private object mOwner = null;
 
-        public ClientPeer(IWebSocketConnection socket) { mSocket = socket; }
+        // 逐连接独立的 KNet 编解码上下文（不跨连接共享，避免 Encode/Decode 内部缓冲被并发改写）
+        private readonly CryptoMgr mCryptoMgr = new CryptoMgr();
+        private readonly NetStreamCircularBuffer mReceiveStreamList = new NetStreamCircularBuffer();
+        private readonly NetStreamReceivePackage mNetPackage = new NetStreamReceivePackage();
+
+        public ClientPeer(IWebSocketConnection socket, NetServerMain serverMgr) { mSocket = socket; mServerMgr = serverMgr; }
 
         public void SetSocketState(SOCKET_PEER_STATE state) { mSocketPeerState = state; }
         public SOCKET_PEER_STATE GetSocketState() => mSocketPeerState;

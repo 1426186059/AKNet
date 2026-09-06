@@ -71,7 +71,7 @@ namespace KNet.WebSocket.Server
                     {
                         var wsCtx = await ctx.AcceptWebSocketAsync(null);
                         var ws = wsCtx.WebSocket;
-                        var peer = new ClientPeer(ws, ctx.Request.RemoteEndPoint);
+                        var peer = new ClientPeer(ws, ctx.Request.RemoteEndPoint, this);
                         OnClientConnected(peer);
                         _ = RecvLoopAsync(peer, ws);
                     }
@@ -99,7 +99,7 @@ namespace KNet.WebSocket.Server
                         try { await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None); } catch { }
                         break;
                     }
-                    Dispatch(peer, buffer.AsSpan(0, result.Count).ToArray());
+                    peer.OnBinaryReceived(buffer.AsSpan(0, result.Count).ToArray());
                 }
             }
             catch (Exception e)
@@ -139,9 +139,9 @@ namespace KNet.WebSocket.Server
             NetLog.Log($"[HttpListener] 客户端断开: {peer.GetIPEndPoint()}");
         }
 
-        public void Dispatch(ClientPeer peer, byte[] data)
+        // 入参已是按 KNet 协议解码后的包
+        public void Dispatch(ClientPeerBase peer, NetPackage pkg)
         {
-            var pkg = new NetPackageImpl(0, data);
             if (mCommonListenFunc != null) mCommonListenFunc(peer, pkg);
             else if (mNetEventDic.TryGetValue(pkg.GetPackageId(), out var func) && func != null) func(peer, pkg);
         }

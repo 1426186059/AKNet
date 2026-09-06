@@ -5,8 +5,9 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <AssemblyName>KNet.WebSocket.Server.HttpListener</AssemblyName>
-    <RootNamespace>KNet.WebSocket.Server.HttpListener</RootNamespace>
+    <!-- 与 TcpListener 保持一致：AssemblyName=KNet.WebSocket.Server，以便通过 KNet.Common 的 InternalsVisibleTo 访问内部编解码类 -->
+    <AssemblyName>KNet.WebSocket.Server</AssemblyName>
+    <RootNamespace>KNet.WebSocket.Server</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

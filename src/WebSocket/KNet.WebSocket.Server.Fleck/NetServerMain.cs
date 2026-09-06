@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using Fleck;
 
 namespace KNet.WebSocket.Server
@@ -19,7 +18,6 @@ namespace KNet.WebSocket.Server
         public int GetPort() => mPort;
         public SOCKET_SERVER_STATE GetServerState() => mState;
 
-        // KNet 内部用 ListenNetPackageMgr / ListenClientPeerStateMgr（KNet.Common 友元），这里独立工程自实现等价分发
         private readonly Dictionary<ushort, Action<ClientPeerBase, NetPackage>> mNetEventDic = new Dictionary<ushort, Action<ClientPeerBase, NetPackage>>();
         private Action<ClientPeerBase, NetPackage> mCommonListenFunc = null;
         private Action<ClientPeerBase, SOCKET_PEER_STATE> mStateFunc1 = null;
@@ -46,15 +44,16 @@ namespace KNet.WebSocket.Server
             mServer = new WebSocketServer($"ws://0.0.0.0:{nPort}");
             mServer.Start(socket =>
             {
-                var peer = new ClientPeer(socket);
+                var peer = new ClientPeer(socket, this);
                 socket.OnOpen = () =>
                 {
                     peer.SetEndPoint(new IPEndPoint(IPAddress.Parse(socket.ConnectionInfo.ClientIpAddress), socket.ConnectionInfo.ClientPort));
                     OnClientConnected(peer);
                 };
                 socket.OnClose = () => OnClientDisconnected(peer);
-                socket.OnBinary = bytes => Dispatch(peer, bytes);
-                socket.OnMessage = text => Dispatch(peer, Encoding.UTF8.GetBytes(text));
+                // KNet 使用二进制帧承载协议包；文本帧不解析为协议包
+                socket.OnBinary = bytes => peer.OnBinaryReceived(bytes);
+                socket.OnMessage = _ => { };
             });
             NetLog.Log($"[Fleck] WebSocket 服务器 初始化成功: 0.0.0.0:{nPort}");
         }
@@ -85,9 +84,9 @@ namespace KNet.WebSocket.Server
             NetLog.Log($"[Fleck] 客户端断开: {peer.GetIPEndPoint()}");
         }
 
-        public void Dispatch(ClientPeer peer, byte[] data)
+        // 入参已是按 KNet 协议解码后的包
+        public void Dispatch(ClientPeerBase peer, NetPackage pkg)
         {
-            var pkg = new NetPackageImpl(0, data);
             if (mCommonListenFunc != null) mCommonListenFunc(peer, pkg);
             else if (mNetEventDic.TryGetValue(pkg.GetPackageId(), out var func) && func != null) func(peer, pkg);
         }
