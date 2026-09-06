@@ -59,9 +59,15 @@ namespace KNet.WebSocket.Server
         {
             NetStreamReceivePackage mNetPackage = mServerMgr.mNetPackage;
             bool bSuccess = false;
-            lock (mReceiveStreamList) { bSuccess = mServerMgr.mCryptoMgr.Decode(mReceiveStreamList, mNetPackage); }
+            lock (mReceiveStreamList) 
+            { 
+                bSuccess = mServerMgr.mCryptoMgr.Decode(mReceiveStreamList, mNetPackage); 
+            }
+
             if (bSuccess && !CommonTcpLayerNetCommand.orInnerCommand(mNetPackage.nPackageId))
+            {
                 mServerMgr.mPackageManager.NetPackageExecute(mWrap, mNetPackage);
+            }
             return bSuccess;
         }
     }
