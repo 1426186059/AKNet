@@ -4,7 +4,7 @@ namespace TestNetServer
 {
     public class NetHandler : NetTestServerBase
     {
-        public override NetServerMainBase Create()
+        public override NetServerInterface Create()
         {
             return new NetServerMain(NetType.WebSocket);
         }
