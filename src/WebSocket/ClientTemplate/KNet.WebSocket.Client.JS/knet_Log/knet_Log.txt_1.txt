@@ -1,0 +1,14 @@
+2026/9/6 4:53:17  ___OnUncaught Exception: System.InvalidOperationException: Cannot see if a key has been pressed when either application does not have a console or when console input has been redirected from a file. Try Console.In.Peek.
+   at System.Console.get_KeyAvailable()
+   at TestNetServer.NetTestServerBase.Update(Double fElapsedTime) in D:\OpenSource\KNet\src\Test\TestCommon\NetTestServerBase.cs:line 69
+   at TestCommon.UpdateMgr.Do(Action`1 updateFunc, Int32 nTargetFPS) in D:\OpenSource\KNet\src\Test\TestCommon\Common\UpdateMgr.cs:line 38
+   at TestNetServer.NetTestServerBase.Start() in D:\OpenSource\KNet\src\Test\TestCommon\NetTestServerBase.cs:line 25
+   at TestNetServer.Program.Main(String[] args) in D:\OpenSource\KNet\src\Test\KNet.WebSocketTest\TestNetServer\Program.cs:line 18 
+   at KNet.Common.NetLog.LogUncaughtException(Exception e) in D:\OpenSource\KNet\src\KNet.Common\LogTool\NetLog.cs:line 185
+   at KNet.Common.NetLog._OnUncaughtExceptionHandler(Object sender, UnhandledExceptionEventArgs args) in D:\OpenSource\KNet\src\KNet.Common\LogTool\NetLog.cs:line 108
+   at System.Console.get_KeyAvailable()
+   at TestNetServer.NetTestServerBase.Update(Double fElapsedTime) in D:\OpenSource\KNet\src\Test\TestCommon\NetTestServerBase.cs:line 69
+   at TestCommon.UpdateMgr.Do(Action`1 updateFunc, Int32 nTargetFPS) in D:\OpenSource\KNet\src\Test\TestCommon\Common\UpdateMgr.cs:line 38
+   at TestNetServer.NetTestServerBase.Start() in D:\OpenSource\KNet\src\Test\TestCommon\NetTestServerBase.cs:line 25
+   at TestNetServer.Program.Main(String[] args) in D:\OpenSource\KNet\src\Test\KNet.WebSocketTest\TestNetServer\Program.cs:line 18
+
