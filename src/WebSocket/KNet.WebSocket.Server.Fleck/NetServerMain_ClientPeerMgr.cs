@@ -1,10 +1,5 @@
 // ClientPeer 管理器：活跃连接登记/移除、心跳超时检测、状态变更派发。
-using Fleck;
 using KNet.Common;
-using System;
-using System.Collections.Generic;
-using System.Net.Sockets;
-using System.Threading;
 
 namespace KNet.WebSocket.Server
 {
