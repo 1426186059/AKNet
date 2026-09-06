@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace KNet.Common
+﻿namespace KNet.Common
 {
     internal class CommonUdpLayerConfig
     {
