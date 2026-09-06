@@ -10,8 +10,7 @@ Console.WriteLine("=== KNet.WebSocketTest: 连接两个 ASP.NET Core Web 服务�
 await TestWebSocket(wsUrl);
 await TestSignalR(hubUrl);
 
-Console.WriteLine("=== 完成 (按任意键退出) ===");
-Console.ReadKey();
+Console.WriteLine("=== 完成 ===");
 
 static async Task TestWebSocket(string url)
 {
