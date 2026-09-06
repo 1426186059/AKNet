@@ -5,15 +5,21 @@ using System.Runtime.InteropServices.JavaScript;
 using System.Threading.Tasks;
 using KNet.Common;
 
-Console.WriteLine("Hello, Browser!");
-
-if (args.Length == 1 && args[0] == "start")
-    PerfPanel.Start();
-
-while (true)
+internal static class Program
 {
-    PerfPanel.Tick();
-    await Task.Delay(16);
+    private static async Task Main(string[] args)
+    {
+        Console.WriteLine("Hello, Browser!");
+
+        if (args.Length == 1 && args[0] == "start")
+            PerfPanel.Start();
+
+        while (true)
+        {
+            PerfPanel.Tick();
+            await Task.Delay(16);
+        }
+    }
 }
 
 /// <summary>
@@ -34,6 +40,7 @@ internal static partial class PerfPanel
     private static long _lastSentPackets;
     private static long _lastRecvPackets;
     private static double _lastTime;
+    private static double _lastTick = 0;
 
     // 高并发压测状态
     private static List<NetClientInterface> _stressClients = new List<NetClientInterface>();
@@ -194,18 +201,35 @@ internal static partial class PerfPanel
         AppendLog("#log", $"连接完成: {connected}/{clientCount} 已连接, 耗时 {connectSw.ElapsedMilliseconds}ms");
         if (connected < clientCount) AppendLog("#log", "警告: 部分连接未成功，压测指标仅供参考");
 
-        // 3) 突发发送全部包并计时
+        // 3) 突发发送全部包并计时。
+        //    关键修复：轮询发送 + 每批发送【前】先 Update，让到期心跳优先于本批数据通过 ws.send 发出。
+        //    否则 10000 个数据包会把心跳淹没在 ws.send 队列尾部，等刷新完早已超过服务端心跳超时 → 全部断开。
         long sent = 0;
         var sendSw = Stopwatch.StartNew();
-        foreach (var c in _stressClients)
+        const int sendChunk = 200;
+        int[] sentPerClient = new int[_stressClients.Count];
+        bool pending = true;
+        while (pending)
         {
-            if (c.GetSocketState() != SOCKET_PEER_STATE.CONNECTED) continue;
-            for (int k = 0; k < perClient; k++)
+            pending = false;
+            for (int i = 0; i < _stressClients.Count; i++)
             {
-                c.SendNetData(1000, body);
-                sent++;
+                var c = _stressClients[i];
+                if (c.GetSocketState() != SOCKET_PEER_STATE.CONNECTED) continue;
+                // 先驱动帧更新：发送到期心跳 + 排空服务器回显（心跳排在 data 之前，防止被淹没）
+                c.Update(0.016);
+                if (sentPerClient[i] < perClient)
+                {
+                    int end = Math.Min(sentPerClient[i] + sendChunk, perClient);
+                    for (; sentPerClient[i] < end; sentPerClient[i]++)
+                    {
+                        c.SendNetData(1000, body);
+                        sent++;
+                    }
+                    pending = true;
+                }
             }
-            c.Update(0.016);
+            await Task.Delay(0); // 让出事件循环，使 WebSocket I/O 与 onmessage 回调得以执行
         }
         for (int f = 0; f < 3; f++) { foreach (var c in _stressClients) c.Update(0.016); await Task.Delay(16); }
         sendSw.Stop();
@@ -234,13 +258,19 @@ internal static partial class PerfPanel
 
     internal static void Tick()
     {
+        double now = _sw.Elapsed.TotalSeconds;
+        // 真实帧间隔：避免 while(true) 循环卡顿/标签页切后台后，固定 0.016 导致心跳计时与墙钟脱节
+        double frameDt = now - _lastTick;
+        _lastTick = now;
+        if (frameDt < 0) frameDt = 0;
+        if (frameDt > 1.0) frameDt = 1.0; // 单帧过大时钳制，避免一次性跳变误判心跳超时
+
         if (_client != null)
         {
-            _client.Update(0.016);
+            _client.Update(frameDt);
         }
-        for (int i = 0; i < _stressClients.Count; i++) _stressClients[i].Update(0.016);
+        for (int i = 0; i < _stressClients.Count; i++) _stressClients[i].Update(frameDt);
 
-        double now = _sw.Elapsed.TotalSeconds;
         double dt = now - _lastTime;
         if (dt >= 1.0)
         {

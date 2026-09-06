@@ -72,30 +72,37 @@
   <div id="log"></div>
 
   <script>
-    // 等待 main.js 暴露 knetExports 后绑定 UI
+    // 等待 main.js 暴露 window.perfPanel 后绑定 UI（直接指向 C# [JSExport] 面板，避免脆弱的命名空间回退）
     const bindUI = () => {
-      const e = window.knetExports;
-      if (!e) { setTimeout(bindUI, 100); return; }
-      const panel = e.PerfPanel || e; // namespace may vary
+      const panel = window.perfPanel;
+      if (!panel) {
+        if (window.knetExports === undefined) { setTimeout(bindUI, 100); return; }
+        // main.js 已执行但没找到面板：给出可见提示，避免“点了没反应”却无任何线索
+        const log = document.getElementById('log');
+        if (log) { const p = document.createElement('div'); p.style.color = '#f48771'; p.textContent = '[UI] 未找到 PerfPanel 导出，按钮不可用，请查看控制台 [main] 日志'; log.appendChild(p); }
+        return;
+      }
 
       const call = (name, ...args) => {
         try {
-          if (panel[name]) panel[name](...args);
-          else if (e.KNet && e.KNet.WebSocket && e.KNet.WebSocket.Client && e.KNet.WebSocket.Client.PerfPanel && e.KNet.WebSocket.Client.PerfPanel[name])
-            e.KNet.WebSocket.Client.PerfPanel[name](...args);
-        } catch (err) { console.error(err); }
+          const fn = panel[name];
+          if (typeof fn !== 'function') { console.error('[UI] 未找到方法: ' + name); return; }
+          const r = fn(...args);
+          // [JSExport] void 方法从 JS 调用会返回 Promise，捕获异步异常便于排查
+          if (r && typeof r.then === 'function') r.catch(err => console.error('[UI] ' + name + ' 异步异常', err));
+        } catch (err) { console.error('[UI] ' + name + ' 调用异常', err); }
       };
 
       document.getElementById('applyVersion').onclick = () =>
-        call('SetVersion', parseInt(document.getElementById('version').value));
+        call('SetVersion', parseInt(document.getElementById('version').value, 10));
       document.getElementById('connect').onclick = () =>
         call('Connect', document.getElementById('host').value, document.getElementById('port').value);
       document.getElementById('disconnect').onclick = () => call('Disconnect');
       document.getElementById('burst').onclick = () =>
-        call('BurstSend', parseInt(document.getElementById('count').value), parseInt(document.getElementById('bodySize').value));
+        call('BurstSend', parseInt(document.getElementById('count').value, 10), parseInt(document.getElementById('bodySize').value, 10));
       document.getElementById('clearLog').onclick = () => call('ClearLog');
       document.getElementById('stress').onclick = () =>
-        call('StressTest', parseInt(document.getElementById('clientCount').value), parseInt(document.getElementById('perClient').value));
+        call('StressTest', parseInt(document.getElementById('clientCount').value, 10), parseInt(document.getElementById('perClient').value, 10));
       document.getElementById('stopStress').onclick = () => call('StopStress');
     };
     bindUI();
