@@ -28,18 +28,28 @@ namespace KNet.WebSocket.Server
             {
             }
 
-            for (int i = mClientList.Count - 1; i >= 0; i--)
+            for (int i = 0; i < mClientList.Count;)
             {
                 ClientPeerWrap mClientPeer = mClientList[i];
                 if (mClientPeer.GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
                 {
                     mClientPeer.Update(elapsed);
+                    ++i;
                 }
                 else
                 {
-                    mClientList.RemoveAt(i);
-                    PrintRemoveClientMsg(mClientPeer);
-                    mClientPeer.Reset();
+                    //移除元素的两种方法
+                    //1: mClientList.RemoveAt(i); 这样移除，会移动很多元素，效率低下
+
+                    //2:这是优化的移除方法，交换元素即可。 可推广到其他工程里
+                    var mRemove = mClientPeer;
+
+                    int nLastIndex = mClientList.Count - 1;
+                    mClientList[i] = mClientList[nLastIndex];
+                    mClientList.RemoveAt(nLastIndex);
+
+                    PrintRemoveClientMsg(mRemove);
+                    mRemove.Reset();
                 }
             }
         }
