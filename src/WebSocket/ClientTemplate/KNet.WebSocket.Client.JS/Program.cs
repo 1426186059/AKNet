@@ -50,6 +50,10 @@ internal static partial class PerfPanel
 
     public static void Start() => _sw.Start();
 
+    // 版本可读标签：日志用，避免直接打印原始枚举名（WebSocketJS_V1/V2）产生歧义
+    private static string VersionLabel()
+        => _version == NetType.WebSocketJS_V1 ? "V1 (JS厚封装)" : "V2 (C#厚封装)";
+
     [JSImport("dom.setInnerText", "main.js")]
     internal static partial void SetInnerText(string selector, string content);
 
@@ -112,7 +116,7 @@ internal static partial class PerfPanel
         });
 
         _client.ConnectServer(host, port);
-        AppendLog("#log", $"连接请求: {host}:{port} ({_version})");
+        AppendLog("#log", $"连接请求: {host}:{port} ({VersionLabel()})");
     }
 
     [JSExport]
@@ -148,7 +152,7 @@ internal static partial class PerfPanel
             _sentBytes += bodySize;
         }
         sw.Stop();
-        AppendLog($"#log", $"突发发送 {count} 包 x {bodySize}B = {count * bodySize}B, 耗时 {sw.ElapsedMilliseconds}ms");
+        AppendLog($"#log", $"突发发送 {count} 包 x {bodySize}B = {count * bodySize}B, 耗时 {sw.ElapsedMilliseconds / 1000.0:F2}秒");
     }
 
     [JSExport]
@@ -176,7 +180,7 @@ internal static partial class PerfPanel
         byte[] body = new byte[64];
         for (int i = 0; i < body.Length; i++) body[i] = (byte)(i & 0xff);
 
-        AppendLog("#log", $"高并发压测开始: {clientCount} 连接 × {perClient} 包 = {total} 包 -> {_lastHost}:{_lastPort} ({_version})");
+        AppendLog("#log", $"高并发压测开始: {clientCount} 连接 × {perClient} 包 = {total} 包 -> {_lastHost}:{_lastPort} ({VersionLabel()})");
 
         // 1) 创建并连接所有客户端
         for (int i = 0; i < clientCount; i++)
@@ -198,7 +202,7 @@ internal static partial class PerfPanel
             await Task.Delay(16);
         }
         connectSw.Stop();
-        AppendLog("#log", $"连接完成: {connected}/{clientCount} 已连接, 耗时 {connectSw.ElapsedMilliseconds}ms");
+        AppendLog("#log", $"连接完成: {connected}/{clientCount} 已连接, 耗时 {connectSw.ElapsedMilliseconds / 1000.0:F2}秒");
         if (connected < clientCount) AppendLog("#log", "警告: 部分连接未成功，压测指标仅供参考");
 
         // 3) 突发发送全部包并计时。
@@ -234,7 +238,7 @@ internal static partial class PerfPanel
         for (int f = 0; f < 3; f++) { foreach (var c in _stressClients) c.Update(0.016); await Task.Delay(16); }
         sendSw.Stop();
         double sendSec = Math.Max(1, sendSw.ElapsedMilliseconds) / 1000.0;
-        AppendLog("#log", $"发送完成: {sent} 包, 耗时 {sendSw.ElapsedMilliseconds}ms, 吞吐 {(sent / sendSec):F0} 包/s ({(sent * body.Length / sendSec / 1024.0):F1} KB/s)");
+        AppendLog("#log", $"发送完成: {sent} 包, 耗时 {sendSw.ElapsedMilliseconds / 1000.0:F2}秒, 吞吐 {(sent / sendSec):F0} 包/s ({(sent * body.Length / sendSec / 1024.0):F1} KB/s)");
 
         // 4) 等待服务端回显（echo）全部到达
         var recvSw = Stopwatch.StartNew();
@@ -244,7 +248,7 @@ internal static partial class PerfPanel
             await Task.Delay(16);
         }
         recvSw.Stop();
-        AppendLog("#log", $"回显完成: 收到 {_stressRecv}/{sent} 包, 耗时 {recvSw.ElapsedMilliseconds}ms, 往返吞吐 {(_stressRecv / Math.Max(1, recvSw.ElapsedMilliseconds) * 1000.0):F0} 包/s");
+        AppendLog("#log", $"回显完成: 收到 {_stressRecv}/{sent} 包, 耗时 {recvSw.ElapsedMilliseconds / 1000.0:F2}秒, 往返吞吐 {(_stressRecv / Math.Max(1, recvSw.ElapsedMilliseconds) * 1000.0):F0} 包/s");
         AppendLog("#log", $"高并发压测结束: 连接 {connected}, 发送 {sent} 包, 接收 {_stressRecv} 包");
     }
 

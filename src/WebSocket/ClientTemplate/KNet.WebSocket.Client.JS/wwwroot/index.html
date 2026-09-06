@@ -93,8 +93,10 @@
         } catch (err) { console.error('[UI] ' + name + ' 调用异常', err); }
       };
 
-      document.getElementById('applyVersion').onclick = () =>
-        call('SetVersion', parseInt(document.getElementById('version').value, 10));
+      const applyVer = () => call('SetVersion', parseInt(document.getElementById('version').value, 10));
+      document.getElementById('applyVersion').onclick = applyVer;
+      // 切换下拉即立即应用版本，避免“选了 V1 却没点应用版本”导致压测仍以默认 V2 运行
+      document.getElementById('version').onchange = applyVer;
       document.getElementById('connect').onclick = () =>
         call('Connect', document.getElementById('host').value, document.getElementById('port').value);
       document.getElementById('disconnect').onclick = () => call('Disconnect');
