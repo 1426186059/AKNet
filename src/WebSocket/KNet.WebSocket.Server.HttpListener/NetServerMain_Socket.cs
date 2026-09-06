@@ -44,7 +44,7 @@ namespace KNet.WebSocket.Server
                 mListener.Prefixes.Add($"http://{host}:{nPort}/");
                 mListener.Start();
 
-                NetLog.Log($"WebSocket 服务器 初始化成功: {Ip}:{nPort}");
+                NetLog.Log($"WebSocket [HttpListener] 服务器 初始化成功: {Ip}:{nPort}");
                 mCancellationTokenSource = new CancellationTokenSource();
                 _ = AcceptLoopAsync();
             }
