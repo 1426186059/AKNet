@@ -17,7 +17,7 @@ namespace KNet.WebSocket.Server
 {
     // 传输层无关的服务器主类（与 KNet.Tcp4 / KNet.WebSocket.Server.TcpListener 同一套书写规则）。
     // 真正完成 HTTP 升级握手的是本文件的分部 NetServerMain_Socket.cs（基于系统 HttpListener + AcceptWebSocketAsync）。
-    internal partial class NetServerMain : NetServerInterface
+    public partial class NetServerMain : NetServerInterface
     {
         // 复用 KNet.Common 的通用管理器（与客户端/包分发一致）
         internal readonly ListenClientPeerStateMgr mListenClientPeerStateMgr = new ListenClientPeerStateMgr();

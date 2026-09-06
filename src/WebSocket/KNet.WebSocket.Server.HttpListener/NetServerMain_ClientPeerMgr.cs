@@ -13,7 +13,7 @@ using System.Net.Sockets;
 
 namespace KNet.WebSocket.Server
 {
-    internal partial class NetServerMain : NetServerInterface
+    public partial class NetServerMain : NetServerInterface
     {
         // ClientPeer 管理器：遍历活跃连接、心跳超时检测与移除。
         // 连接已在 AcceptLoopAsync 中完成 HTTP 升级（系统 HttpListener 已返回 WebSocket），
@@ -45,7 +45,7 @@ namespace KNet.WebSocket.Server
             }
         }
 
-        public bool MultiThreadingHandleConnectedSocket(ClientPeerWrap mClientPeer)
+        private bool MultiThreadingHandleConnectedSocket(ClientPeerWrap mClientPeer)
         {
             int nNowConnectCount = mClientList.Count + mConnectSocketQueue.Count;
             if (nNowConnectCount >= this.mConfigInstance.MaxPlayerCount)

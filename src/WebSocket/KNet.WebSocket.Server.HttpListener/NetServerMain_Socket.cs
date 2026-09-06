@@ -9,17 +9,12 @@
  *  Contact    : 微信：AAA-2025-666-888
 ************************************Copyright*****************************************/
 using KNet.Common;
-using System;
 using System.Net;
-using System.Net.Sockets;
-using System.Net.WebSockets;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace KNet.WebSocket.Server
 {
     // 传输层：基于系统 HttpListener 完成官方 HTTP 升级握手（零第三方依赖，天然支持 wss）。
-    internal partial class NetServerMain
+    public partial class NetServerMain
     {
         public void InitNet()
         {
