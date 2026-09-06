@@ -40,6 +40,12 @@ namespace KNet.WebSocket.Client
         [JSImport("knet.netReceive", "main.js")]
         private static partial byte[] NetReceive(int instanceId);
 
+        [JSImport("knet.netResetStats", "main.js")]
+        private static partial void NetResetStats();
+
+        [JSImport("knet.netGetStats", "main.js")]
+        private static partial string NetGetStats();
+
         #endregion
 
         private readonly ListenNetPackageMgr mPackageManager;
@@ -188,6 +194,15 @@ namespace KNet.WebSocket.Client
         }
 
         public void Dispose() => Reset();
+
+        // 诊断：V1 全局收发统计（供压测定位丢包在发送侧还是接收侧）
+        public static void ResetV1Stats() => NetResetStats();
+        public static (long sendOk, long sendFail, long decoded, long recvEvents) GetV1Stats()
+        {
+            var parts = (NetGetStats() ?? "").Split(',');
+            long TryGet(int i) => parts.Length > i && long.TryParse(parts[i], out var v) ? v : 0;
+            return (TryGet(0), TryGet(1), TryGet(2), TryGet(3));
+        }
 
         #region Send
 

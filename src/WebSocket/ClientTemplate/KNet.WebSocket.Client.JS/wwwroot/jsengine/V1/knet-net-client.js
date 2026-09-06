@@ -11,6 +11,11 @@ const instances = {};
 let nextId = 1;
 let xorKey = new Uint8Array(0);
 
+// 诊断统计（全局，跨所有 V1 实例累计）：用于压测定位丢包发生在发送侧还是接收侧
+const stats = { sendOk: 0, sendFail: 0, decoded: 0, recvEvents: 0 };
+export const netResetStats = () => { stats.sendOk = 0; stats.sendFail = 0; stats.decoded = 0; stats.recvEvents = 0; };
+export const netGetStats = () => `${stats.sendOk},${stats.sendFail},${stats.decoded},${stats.recvEvents}`;
+
 // COMMAND_HEARTBEAT = 1 (对齐 KNet.Common.CommonTcpLayerNetCommand)
 const COMMAND_HEARTBEAT = 1;
 const HEADER_SIZE = 9;
@@ -55,33 +60,39 @@ const encodeFrame = (packageId, body) => {
     return frame;
 };
 
+// 尝试在 buf[pos] 处解出帧头；校验 'KNET' 通过则返回 {packageId, bodyLen}，否则 null。
+const tryDecodeHeader = (buf, pos) => {
+    if (pos + HEADER_SIZE > buf.length) return null;
+    const token = buf[pos];
+    const head = new Uint8Array(HEADER_SIZE);
+    head[0] = token;
+    for (let i = 1; i < HEADER_SIZE - 1; i++) head[i] = xorByte(i, buf[pos + i], token);
+    head[8] = buf[pos + 8];
+    if (head[1] !== CHECK[0] || head[2] !== CHECK[1] ||
+        head[3] !== CHECK[2] || head[4] !== CHECK[3]) return null;
+    const packageId = (head[5] << 8) | head[6];
+    const bodyLen = (head[7] << 8) | head[8];
+    return { packageId, bodyLen };
+};
+
 // 从累积缓冲解出所有完整帧，返回 {packageId, body} 数组
 const decodeFrames = (buf) => {
     const out = [];
     let pos = 0;
     while (pos + HEADER_SIZE <= buf.length) {
-        const token = buf[pos];
-        // 解密头 [1..7]（与 C# 编解码范围一致）
-        const head = new Uint8Array(HEADER_SIZE);
-        head[0] = token;
-        for (let i = 1; i < HEADER_SIZE - 1; i++) {
-            head[i] = xorByte(i, buf[pos + i], token);
-        }
-        head[7] = buf[pos + 7];
-        head[8] = buf[pos + 8];
-        // 校验 'KNET'
-        if (head[1] !== CHECK[0] || head[2] !== CHECK[1] ||
-            head[3] !== CHECK[2] || head[4] !== CHECK[3]) {
-            // 帧头损坏，丢弃一个字节继续找（容错）
-            pos++;
+        const h = tryDecodeHeader(buf, pos);
+        if (!h) {
+            // 帧头损坏：跳到下一个可能的帧起点（向前扫描找 'KNET' 对齐），
+            // 而不是逐字节 +1，避免把后续所有帧一起带偏导致大面积丢包。
+            let q = pos + 1;
+            while (q + HEADER_SIZE <= buf.length && !tryDecodeHeader(buf, q)) q++;
+            pos = q;
             continue;
         }
-        const packageId = (head[5] << 8) | head[6];
-        const bodyLen = (head[7] << 8) | head[8];
-        const total = HEADER_SIZE + bodyLen;
+        const total = HEADER_SIZE + h.bodyLen;
         if (pos + total > buf.length) break; // 帧不完整，等待更多数据
         const body = buf.slice(pos + HEADER_SIZE, pos + total);
-        out.push({ packageId, body });
+        out.push({ packageId: h.packageId, body });
         pos += total;
     }
     return { frames: out, consumed: pos };
@@ -123,6 +134,8 @@ export const netConnect = (url) => {
             inst.lastRecv = Date.now();
             // 解帧
             const { frames, consumed } = decodeFrames(inst.recvBuf);
+            stats.recvEvents++;
+            stats.decoded += frames.length;
             for (const f of frames) inst.packets.push(f);
             if (consumed > 0) {
                 inst.recvBuf = inst.recvBuf.slice(consumed);
@@ -158,11 +171,14 @@ export const netSend = (id, packageId, data) => {
     if (inst && inst.ws && inst.ws.readyState === WebSocket.OPEN) {
         try {
             inst.ws.send(encodeFrame(packageId, data));
+            stats.sendOk++;
             return 1;
         } catch (e) {
+            stats.sendFail++;
             return 0;
         }
     }
+    stats.sendFail++;
     return 0;
 };
 

@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices.JavaScript;
 using System.Threading.Tasks;
 using KNet.Common;
+using KNet.WebSocket.Client;
 
 internal static class Program
 {
@@ -103,7 +104,7 @@ internal static partial class PerfPanel
         _lastHost = host;
         _lastPort = port;
 
-        _client = new NetClientMain(_version).GetInstance();
+        _client = new KNet.Common.NetClientMain(_version).GetInstance();
         _client.addListenClientPeerStateFunc(peer =>
         {
             AppendLog("#log", $"状态变化: {peer.GetSocketState()}");
@@ -174,6 +175,8 @@ internal static partial class PerfPanel
             return;
         }
         StopStress();
+        // V1 诊断：每次压测开头清零全局统计（ws.send 成败 / onmessage 解出帧数）
+        if (_version == NetType.WebSocketJS_V1) KNet.WebSocket.Client.NetClientMainJS.ResetV1Stats();
 
         int total = clientCount * perClient;
         _stressRecv = 0;
@@ -185,7 +188,7 @@ internal static partial class PerfPanel
         // 1) 创建并连接所有客户端
         for (int i = 0; i < clientCount; i++)
         {
-            var c = new NetClientMain(_version).GetInstance();
+            var c = new KNet.Common.NetClientMain(_version).GetInstance();
             c.addListenClientPeerStateFunc(p => { });
             c.addNetListenFunc((peer, pkg) => { _stressRecv++; });
             c.ConnectServer(_lastHost, _lastPort);
@@ -210,6 +213,7 @@ internal static partial class PerfPanel
         //    否则 10000 个数据包会把心跳淹没在 ws.send 队列尾部，等刷新完早已超过服务端心跳超时 → 全部断开。
         long sent = 0;
         var sendSw = Stopwatch.StartNew();
+        var totalSw = Stopwatch.StartNew(); // 总耗时：从开始发送第一包到收齐全部回显
         const int sendChunk = 200;
         int[] sentPerClient = new int[_stressClients.Count];
         bool pending = true;
@@ -248,8 +252,18 @@ internal static partial class PerfPanel
             await Task.Delay(16);
         }
         recvSw.Stop();
+        totalSw.Stop();
+        long lost = sent - _stressRecv;
+        double lossPct = sent > 0 ? lost * 100.0 / sent : 0.0;
         AppendLog("#log", $"回显完成: 收到 {_stressRecv}/{sent} 包, 耗时 {recvSw.ElapsedMilliseconds / 1000.0:F2}秒, 往返吞吐 {(_stressRecv / Math.Max(1, recvSw.ElapsedMilliseconds) * 1000.0):F0} 包/s");
+        AppendLog("#log", $"总耗时(发送→收齐回显): {totalSw.ElapsedMilliseconds / 1000.0:F2}秒 (发送 {sendSw.ElapsedMilliseconds / 1000.0:F2}秒 + 回显等待 {recvSw.ElapsedMilliseconds / 1000.0:F2}秒)");
+        AppendLog("#log", $"丢包: {lost} 包 / 共 {sent} 包 ({lossPct:F2}%)" + (lost > 0 ? "  ⚠ 存在丢包" : "  无丢包"));
         AppendLog("#log", $"高并发压测结束: 连接 {connected}, 发送 {sent} 包, 接收 {_stressRecv} 包");
+        if (_version == NetType.WebSocketJS_V1)
+        {
+            var s = NetClientMainJS.GetV1Stats();
+            AppendLog("#log", $"V1 诊断: ws.send 成功 {s.sendOk} / 失败 {s.sendFail}, onmessage 解出帧 {s.decoded}, onmessage 触发 {s.recvEvents}");
+        }
     }
 
     [JSExport]
