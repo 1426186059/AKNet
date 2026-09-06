@@ -1,70 +1,142 @@
-// 客户端连接封装（分部类之一：基础状态、属性、生命周期、心跳）。
+﻿/************************************Copyright*****************************************
+ *  Project    : KNet
+ *  Web        : https://github.com/1426186059/KNet
+ *  Description: C# 游戏网络库
+ *  Author     : 许珂
+ *  Since      : 2024/11/01 00:00:00
+ *  Updated    : 2026/09/06 00:00:00
+ *  Copyright  : 作者保留一切版权权利, 商业用途需支付版权费用
+ *  Contact    : 微信：AAA-2025-666-888
+************************************Copyright*****************************************/
 using KNet.Common;
 using System;
-using System.Net;
-using System.Net.WebSockets;
+using System.Runtime.CompilerServices;
 
 namespace KNet.WebSocket.Server
 {
-    public partial class ClientPeer : ClientPeerBase
+    internal partial class ClientPeer : ClientPeerBase
     {
-        private readonly System.Net.WebSockets.WebSocket mWs;
-        private readonly NetServerMain mServerMgr;
-        private SOCKET_PEER_STATE mSocketPeerState = SOCKET_PEER_STATE.DISCONNECTED;
-        private IPEndPoint mIPEndPoint = null;
-        private string mName = string.Empty;
-        private uint mID;
-        private object mOwner = null;
-
-        // 逐连接独立的 KNet 编解码上下文（不跨连接共享，避免 Encode/Decode 内部缓冲被并发改写）
-        private readonly CryptoMgr mCryptoMgr = new CryptoMgr();
-        private readonly NetStreamCircularBuffer mReceiveStreamList = new NetStreamCircularBuffer();
-        private readonly NetStreamReceivePackage mNetPackage = new NetStreamReceivePackage();
-        private readonly object mCryptoLock = new object();
-
-        // 心跳计时
+        private SOCKET_PEER_STATE mSocketPeerState;
+        private SOCKET_PEER_STATE mLastSocketPeerState;
         private double fSendHeartBeatTime = 0.0;
         private double fReceiveHeartBeatTime = 0.0;
 
-        public ClientPeer(System.Net.WebSockets.WebSocket ws, IPEndPoint ep, NetServerMain serverMgr)
+        private NetServerMain mServerMgr;
+        private string mName = string.Empty;
+        private uint mID = 0;
+        private object mOwner = null;
+        private ClientPeerWrap mWrap;
+
+
+        private readonly AkCircularBuffer mSendStreamList = new AkCircularBuffer();
+        private readonly NetStreamCircularBuffer mReceiveStreamList = new NetStreamCircularBuffer();
+        private byte[] mSendBuffer = new byte[CommonTcpLayerConfig.nIOContexBufferLength];
+        private bool bSending = false;
+        public ClientPeer(NetServerMain mServerMgr)
         {
-            mWs = ws;
-            mIPEndPoint = ep;
-            mServerMgr = serverMgr;
+            this.mServerMgr = mServerMgr;
+            ResetSocketState();
         }
 
-        public void SetSocketState(SOCKET_PEER_STATE state) { mSocketPeerState = state; }
-        public SOCKET_PEER_STATE GetSocketState() => mSocketPeerState;
-        public IPEndPoint GetIPEndPoint() => mIPEndPoint;
+        public void SetWrap(ClientPeerWrap mWrap)
+        {
+            this.mWrap = mWrap;
+        }
 
-        public void SetName(string name) { mName = name; }
-        public string GetName() => mName;
-        public void SetID(uint id) { mID = id; }
-        public uint GetID() => mID;
-        public void SetOwner(object owner) { mOwner = owner; }
-        public object GetOwner() => mOwner;
-
-        public void Dispose() { try { mWs.Dispose(); } catch { } }
-
-        // 由 NetServerMain.Update 驱动：发送心跳 + 检测接收心跳超时（超时则置 DISCONNECTED，交由管理器移除）
         public void Update(double elapsed)
         {
-            if (mSocketPeerState != SOCKET_PEER_STATE.CONNECTED) return;
-
-            fSendHeartBeatTime += elapsed;
-            if (fSendHeartBeatTime >= CommonTcpLayerConfig.fSendHeartBeatMaxTime)
+            switch (mSocketPeerState)
             {
-                SendNetData(CommonTcpLayerNetCommand.COMMAND_HEARTBEAT);
-                fSendHeartBeatTime = 0.0;
+                case SOCKET_PEER_STATE.CONNECTED:
+                    int nPackageCount = 0;
+                    while (NetPackageExecute())
+                    {
+                        nPackageCount++;
+                    }
+
+                    if (nPackageCount > 0) { ReceiveHeartBeat(); }
+
+                    fSendHeartBeatTime += elapsed;
+                    if (fSendHeartBeatTime >= CommonTcpLayerConfig.fSendHeartBeatMaxTime)
+                    {
+                        SendHeartBeat();
+                        fSendHeartBeatTime = 0.0;
+                    }
+
+                    double fHeatTime = Math.Min(0.3, elapsed);
+                    fReceiveHeartBeatTime += fHeatTime;
+                    if (fReceiveHeartBeatTime >= CommonTcpLayerConfig.fReceiveHeartBeatTimeOut)
+                    {
+                        fReceiveHeartBeatTime = 0.0;
+                        SetSocketState(SOCKET_PEER_STATE.DISCONNECTED);
+                    }
+                    break;
+                default:
+                    break;
             }
 
-            fReceiveHeartBeatTime += Math.Min(0.3, elapsed);
-            if (fReceiveHeartBeatTime >= CommonTcpLayerConfig.fReceiveHeartBeatTimeOut)
+            OnSocketStateChanged();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void SendHeartBeat() { SendNetData(CommonTcpLayerNetCommand.COMMAND_HEARTBEAT); }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ResetSendHeartBeatTime() { fSendHeartBeatTime = 0f; }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ReceiveHeartBeat() { fReceiveHeartBeatTime = 0.0; }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void SetSocketState(SOCKET_PEER_STATE mState)
+        {
+            NetLog.Assert(mState == SOCKET_PEER_STATE.CONNECTED || mState == SOCKET_PEER_STATE.DISCONNECTED);
+            this.mSocketPeerState = mState;
+        }
+        public SOCKET_PEER_STATE GetSocketState() { return mSocketPeerState; }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void OnSocketStateChanged()
+        {
+            if (this.mSocketPeerState != this.mLastSocketPeerState)
             {
-                SetSocketState(SOCKET_PEER_STATE.DISCONNECTED);
+                this.mLastSocketPeerState = mSocketPeerState;
+                mServerMgr.OnSocketStateChanged(mWrap);
             }
         }
 
-        private void ReceiveHeartBeat() { fReceiveHeartBeatTime = 0.0; }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ResetSocketState()
+        {
+            this.mSocketPeerState = this.mLastSocketPeerState = SOCKET_PEER_STATE.DISCONNECTED;
+        }
+
+        public void Reset()
+        {
+            OnSocketStateChanged();
+            ResetSocketState();
+
+            CloseWebSocket();
+            lock (mReceiveStreamList) { mReceiveStreamList.Reset(); }
+            lock (mSendStreamList) { mSendStreamList.Reset(); }
+
+            fSendHeartBeatTime = 0.0;
+            fReceiveHeartBeatTime = 0.0;
+            this.mName = string.Empty;
+            this.mID = 0;
+            this.mOwner = null;
+        }
+
+        public void Dispose()
+        {
+            Reset();
+
+            lock (mReceiveStreamList) { mReceiveStreamList.Dispose(); }
+            lock (mSendStreamList) { mSendStreamList.Dispose(); }
+        }
+
+        public void SetName(string name) { this.mName = name; }
+        public string GetName() { return this.mName; }
+        public void SetID(uint id) { this.mID = id; }
+        public uint GetID() { return this.mID; }
+        public void SetOwner(object owner) { this.mOwner = owner; }
+        public object GetOwner() { return this.mOwner; }
     }
 }

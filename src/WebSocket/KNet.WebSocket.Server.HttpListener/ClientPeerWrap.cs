@@ -4,7 +4,7 @@
  *  Description: C# 游戏网络库
  *  Author     : 许珂
  *  Since      : 2024/11/01 00:00:00
- *  Updated    : 2026/07/28 00:39:11
+ *  Updated    : 2026/09/06 00:00:00
  *  Copyright  : 作者保留一切版权权利, 商业用途需支付版权费用
  *  Contact    : 微信：AAA-2025-666-888
 ************************************Copyright*****************************************/
@@ -12,6 +12,7 @@ using KNet.Common;
 using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Net.WebSockets;
 using System.Threading.Tasks;
 
 namespace KNet.WebSocket.Server
@@ -22,10 +23,10 @@ namespace KNet.WebSocket.Server
     {
         private ClientPeer mInstance = null;
         private NetServerMain mServerMgr;
-        public ClientPeerWrap(ClientPeer mInstance, NetServerMain mNetServer)
+        public ClientPeerWrap(NetServerMain mNetServer)
         {
             this.mServerMgr = mNetServer;
-            this.mInstance = mInstance;
+            this.mInstance = mNetServer.mClientPeerPool.Pop();
             this.mInstance.SetWrap(this);
         }
 
@@ -100,11 +101,12 @@ namespace KNet.WebSocket.Server
             }
         }
 
-        public void PerformWebSocketHandshake(Socket mSocket)
+        // 系统 HttpListener 完成 HTTP 升级后，由 NetServerMain 调用，把已建立的 WebSocket 交给底层 ClientPeer。
+        public void AttachWebSocket(System.Net.WebSockets.WebSocket ws, System.Net.IPEndPoint endPoint)
         {
             if (mInstance != null)
             {
-                mInstance.PerformWebSocketHandshake(mSocket);
+                mInstance.AttachWebSocket(ws, endPoint);
             }
         }
 

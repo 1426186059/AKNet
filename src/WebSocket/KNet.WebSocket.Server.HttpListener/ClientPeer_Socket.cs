@@ -1,26 +1,43 @@
-// 客户端连接封装（分部类之二：发送相关，走 KNet 协议编码）。
-using Fleck;
+﻿/************************************Copyright*****************************************
+ *  Project    : KNet
+ *  Web        : https://github.com/1426186059/KNet
+ *  Description: C# 游戏网络库
+ *  Author     : 许珂
+ *  Since      : 2024/11/01 00:00:00
+ *  Updated    : 2026/09/06 00:00:00
+ *  Copyright  : 作者保留一切版权权利, 商业用途需支付版权费用
+ *  Contact    : 微信：AAA-2025-666-888
+************************************Copyright*****************************************/
 using KNet.Common;
+using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Net.WebSockets;
+using System.Threading.Tasks;
 
 namespace KNet.WebSocket.Server
 {
+    using WsWebSocket = System.Net.WebSockets.WebSocket;
+
     internal partial class ClientPeer
     {
         internal readonly object mWsLock = new object();
-        internal IWebSocketConnection mWebSocket = null;
-        internal System.Net.Sockets.TcpClient mTcpClient = null;
+        internal WsWebSocket mWebSocket = null;
+        internal IPEndPoint mIPEndPoint = null;
 
-        public IPEndPoint GetIPEndPoint() 
+        // 由 NetServerMain 在系统 HttpListener 完成 AcceptWebSocketAsync 之后调用：
+        // 连接已建立，这里只登记 WebSocket 并启动收发循环（握手由系统 HttpListener 完成）。
+        internal void AttachWebSocket(WsWebSocket ws, IPEndPoint endPoint)
         {
-            if (mIPEndPoint == null)
-            {
-                mIPEndPoint =  new IPEndPoint(IPAddress.Parse(mWebSocket.ConnectionInfo.ClientIpAddress), mWebSocket.ConnectionInfo.ClientPort);
-            }
-            return mIPEndPoint;
+            lock (mWsLock) { mWebSocket = ws; }
+            mIPEndPoint = endPoint;
+
+            MainThreadCheck.Check();
+            SetSocketState(SOCKET_PEER_STATE.CONNECTED);
+            _ = Task.Run(ReceiveLoopAsync);
         }
+
+        public IPEndPoint GetIPEndPoint() { return mIPEndPoint; }
 
         private void SendNetStream(ReadOnlySpan<byte> mBufferSegment)
         {
@@ -79,16 +96,7 @@ namespace KNet.WebSocket.Server
             lock (mWsLock)
             {
                 if (mWebSocket != null) { try { mWebSocket.Dispose(); } catch { } mWebSocket = null; }
-                if (mTcpClient != null) { try { mTcpClient.Close(); } catch { } mTcpClient = null; }
             }
-        }
-
-        private static string ExtractWebSocketKey(string request)
-        {
-            foreach (var line in request.Split('\n'))
-                if (line.StartsWith("Sec-WebSocket-Key:", StringComparison.OrdinalIgnoreCase))
-                    return line.Substring("Sec-WebSocket-Key:".Length).Trim();
-            return string.Empty;
         }
     }
 }

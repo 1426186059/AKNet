@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+﻿<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -10,7 +10,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- KNet 核心库（netstandard2.1/net8.0，浏览器 WASM 可直接引用）。
+    <!-- KNet 核心库（netstandard2.1/net10.0，浏览器 WASM 可直接引用）。
          NetClientMain 的浏览器 WebSocket 后端在 Runtime/ 下以 partial 形式提供。 -->
     <ProjectReference Include="..\..\..\KNet.Common\KNet.Common.csproj" />
   </ItemGroup>

@@ -1,37 +1,72 @@
-// 客户端连接封装（分部类之二：发送相关，走 KNet 协议编码）。
+﻿/************************************Copyright*****************************************
+ *  Project    : KNet
+ *  Web        : https://github.com/1426186059/KNet
+ *  Description: C# 游戏网络库
+ *  Author     : 许珂
+ *  Since      : 2024/11/01 00:00:00
+ *  Updated    : 2026/09/06 00:00:00
+ *  Copyright  : 作者保留一切版权权利, 商业用途需支付版权费用
+ *  Contact    : 微信：AAA-2025-666-888
+************************************Copyright*****************************************/
 using KNet.Common;
 using System;
-using System.Net.WebSockets;
-using System.Threading.Tasks;
 
 namespace KNet.WebSocket.Server
 {
-    public partial class ClientPeer
+    internal partial class ClientPeer
     {
-        public void SendNetData(ushort nPackageId) { EncodeAndSend(nPackageId, ReadOnlySpan<byte>.Empty); }
-        public void SendNetData(ushort nPackageId, byte[] data) { EncodeAndSend(nPackageId, data); }
-        public void SendNetData(ushort nPackageId, ReadOnlySpan<byte> buffer) { EncodeAndSend(nPackageId, buffer); }
-        public void SendNetData(NetPackage mNetPackage) { EncodeAndSend(mNetPackage.GetPackageId(), mNetPackage.GetData()); }
-        public void SendNetData(byte[] data) { EncodeAndSend(0, data); }
-        public void SendNetData(ReadOnlySpan<byte> data) { EncodeAndSend(0, data); }
-
-        // 编码结果指向 CryptoMgr 内部缓冲，须在锁内拷贝为独立数组；
-        // 锁避免定时器心跳发送与接收回显在同一连接上并发改写同一编码缓冲
-        private void EncodeAndSend(ushort nPackageId, ReadOnlySpan<byte> body)
+        public void SendNetData(ushort nPackageId)
         {
-            if (GetSocketState() != SOCKET_PEER_STATE.CONNECTED) return;
-            byte[] buf;
-            lock (mCryptoLock) { buf = mCryptoMgr.Encode(nPackageId, body).ToArray(); }
-            _ = SendBinaryAsync(buf);
+            if (GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
+            {
+                ReadOnlySpan<byte> mBufferSegment = mServerMgr.mCryptoMgr.Encode(nPackageId, ReadOnlySpan<byte>.Empty);
+                SendNetStream(mBufferSegment);
+            }
         }
 
-        private async Task SendBinaryAsync(byte[] data)
+        public void SendNetData(ushort nPackageId, byte[] data)
         {
-            try
+            if (GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
             {
-                await mWs.SendAsync(new ArraySegment<byte>(data), WebSocketMessageType.Binary, true, System.Threading.CancellationToken.None);
+                ReadOnlySpan<byte> mBufferSegment = mServerMgr.mCryptoMgr.Encode(nPackageId, data);
+                SendNetStream(mBufferSegment);
             }
-            catch { }
+        }
+
+        public void SendNetData(NetPackage mNetPackage)
+        {
+            if (GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
+            {
+                ReadOnlySpan<byte> mBufferSegment = mServerMgr.mCryptoMgr.Encode(mNetPackage.GetPackageId(), mNetPackage.GetData());
+                SendNetStream(mBufferSegment);
+            }
+        }
+
+        public void SendNetData(ushort nPackageId, ReadOnlySpan<byte> buffer)
+        {
+            if (GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
+            {
+                ReadOnlySpan<byte> mBufferSegment = mServerMgr.mCryptoMgr.Encode(nPackageId, buffer);
+                SendNetStream(mBufferSegment);
+            }
+        }
+
+        public void SendNetData(byte[] data)
+        {
+            if (GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
+            {
+                ReadOnlySpan<byte> mBufferSegment = mServerMgr.mCryptoMgr.Encode(0, data);
+                SendNetStream(mBufferSegment);
+            }
+        }
+
+        public void SendNetData(ReadOnlySpan<byte> data)
+        {
+            if (GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
+            {
+                ReadOnlySpan<byte> mBufferSegment = mServerMgr.mCryptoMgr.Encode(0, data);
+                SendNetStream(mBufferSegment);
+            }
         }
     }
 }

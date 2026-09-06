@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "KNet.WebSocket.Server.AspNetCore.WebSocket": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:55347;http://localhost:55350"
+    }
+  }
+}

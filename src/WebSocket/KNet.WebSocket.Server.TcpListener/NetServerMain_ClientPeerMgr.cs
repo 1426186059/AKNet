@@ -9,8 +9,6 @@
  *  Contact    : 微信：AAA-2025-666-888
 ************************************Copyright*****************************************/
 using KNet.Common;
-using System;
-using System.Collections.Generic;
 using System.Net.Sockets;
 
 namespace KNet.WebSocket.Server
@@ -72,6 +70,7 @@ namespace KNet.WebSocket.Server
             {
                 mConnectSocketQueue.TryDequeue(out mSocket);
             }
+
             if (mSocket != null)
             {
                 ClientPeerWrap clientPeer = new ClientPeerWrap(this);
@@ -87,6 +86,7 @@ namespace KNet.WebSocket.Server
                 }
                 return true;
             }
+
             return false;
         }
 
