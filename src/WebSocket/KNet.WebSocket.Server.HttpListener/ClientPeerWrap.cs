@@ -102,11 +102,11 @@ namespace KNet.WebSocket.Server
         }
 
         // 系统 HttpListener 完成 HTTP 升级后，由 NetServerMain 调用，把已建立的 WebSocket 交给底层 ClientPeer。
-        public void AttachWebSocket(System.Net.WebSockets.WebSocket ws, System.Net.IPEndPoint endPoint)
+        public void HandleConnectedSocket(FakeSocket ws)
         {
             if (mInstance != null)
             {
-                mInstance.AttachWebSocket(ws, endPoint);
+                mInstance.HandleConnectedSocket(ws);
             }
         }
 

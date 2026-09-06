@@ -9,7 +9,6 @@
  *  Contact    : 微信：AAA-2025-666-888
 ************************************Copyright*****************************************/
 using KNet.Common;
-using System.Net.Sockets;
 
 namespace KNet.WebSocket.Server
 {
@@ -45,7 +44,7 @@ namespace KNet.WebSocket.Server
             }
         }
 
-        private bool MultiThreadingHandleConnectedSocket(ClientPeerWrap mClientPeer)
+        private bool MultiThreadingHandleConnectedSocket(FakeSocket mSocket)
         {
             int nNowConnectCount = mClientList.Count + mConnectSocketQueue.Count;
             if (nNowConnectCount >= this.mConfigInstance.MaxPlayerCount)
@@ -59,7 +58,7 @@ namespace KNet.WebSocket.Server
             {
                 lock (mConnectSocketQueue)
                 {
-                    mConnectSocketQueue.Enqueue(mClientPeer);
+                    mConnectSocketQueue.Enqueue(mSocket);
                 }
                 return true;
             }
@@ -67,19 +66,27 @@ namespace KNet.WebSocket.Server
 
         private bool CreateClientPeer()
         {
-            ClientPeerWrap mClientPeer = null;
+            FakeSocket mSocket;
             lock (mConnectSocketQueue)
             {
-                mConnectSocketQueue.TryDequeue(out mClientPeer);
+                mConnectSocketQueue.TryDequeue(out mSocket);
             }
 
-            if (mClientPeer != null)
+            if (mSocket.mContext != null)
             {
-                mClientList.Add(mClientPeer);
-                PrintAddClientMsg(mClientPeer);
+                ClientPeerWrap clientPeer = new ClientPeerWrap(this);
+                clientPeer.HandleConnectedSocket(mSocket);
+                if (clientPeer.GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
+                {
+                    mClientList.Add(clientPeer);
+                    PrintAddClientMsg(clientPeer);
+                }
+                else
+                {
+                    clientPeer.Reset();
+                }
                 return true;
             }
-
             return false;
         }
 

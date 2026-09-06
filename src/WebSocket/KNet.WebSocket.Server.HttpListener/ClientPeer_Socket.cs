@@ -9,11 +9,8 @@
  *  Contact    : 微信：AAA-2025-666-888
 ************************************Copyright*****************************************/
 using KNet.Common;
-using System;
 using System.Net;
-using System.Net.Sockets;
 using System.Net.WebSockets;
-using System.Threading.Tasks;
 
 namespace KNet.WebSocket.Server
 {
@@ -21,16 +18,17 @@ namespace KNet.WebSocket.Server
 
     internal partial class ClientPeer
     {
-        internal readonly object mWsLock = new object();
+        internal FakeSocket mSocket;
         internal WsWebSocket mWebSocket = null;
         internal IPEndPoint mIPEndPoint = null;
 
         // 由 NetServerMain 在系统 HttpListener 完成 AcceptWebSocketAsync 之后调用：
         // 连接已建立，这里只登记 WebSocket 并启动收发循环（握手由系统 HttpListener 完成）。
-        internal void AttachWebSocket(WsWebSocket ws, IPEndPoint endPoint)
+        public void HandleConnectedSocket(FakeSocket mSocket)
         {
-            lock (mWsLock) { mWebSocket = ws; }
-            mIPEndPoint = endPoint;
+            this.mSocket = mSocket;
+            this.mWebSocket = mSocket.mWebSocket;
+            this.mIPEndPoint = mSocket.mIPEndPoint;
 
             MainThreadCheck.Check();
             SetSocketState(SOCKET_PEER_STATE.CONNECTED);
@@ -65,20 +63,29 @@ namespace KNet.WebSocket.Server
         {
             while (true)
             {
-                WsWebSocket ws;
-                lock (mWsLock) { ws = mWebSocket; }
-
                 int nLength;
-                lock (mSendStreamList) { nLength = mSendStreamList.Length; }
-                if (nLength <= 0 || ws == null || ws.State != WebSocketState.Open)
-                { bSending = false; return; }
+                lock (mSendStreamList) 
+                { 
+                    nLength = mSendStreamList.Length; 
+                }
+
+                if (nLength <= 0 || 
+                    mWebSocket == null || 
+                    mWebSocket.State != WebSocketState.Open)
+                { 
+                    bSending = false; 
+                    return; 
+                }
 
                 nLength = Math.Min(mSendBuffer.Length, nLength);
-                lock (mSendStreamList) { mSendStreamList.CopyTo(new Span<byte>(mSendBuffer, 0, nLength)); }
+                lock (mSendStreamList) 
+                { 
+                    mSendStreamList.CopyTo(new Span<byte>(mSendBuffer, 0, nLength)); 
+                }
 
                 try
                 {
-                    await ws.SendAsync(new ArraySegment<byte>(mSendBuffer, 0, nLength),
+                    await mWebSocket.SendAsync(new ArraySegment<byte>(mSendBuffer, 0, nLength),
                         WebSocketMessageType.Binary, true, System.Threading.CancellationToken.None)
                         .ConfigureAwait(false);
 
@@ -90,13 +97,18 @@ namespace KNet.WebSocket.Server
         }
 
         private void DisConnectedWithNormal() { SetSocketState(SOCKET_PEER_STATE.DISCONNECTED); }
-
         internal void CloseWebSocket()
         {
-            lock (mWsLock)
-            {
-                if (mWebSocket != null) { try { mWebSocket.Dispose(); } catch { } mWebSocket = null; }
+            MainThreadCheck.Check();
+            if (mWebSocket != null) 
+            { 
+                try 
+                { 
+                    mWebSocket.Dispose(); 
+                } catch { }
+                mWebSocket = null;
             }
         }
+
     }
 }

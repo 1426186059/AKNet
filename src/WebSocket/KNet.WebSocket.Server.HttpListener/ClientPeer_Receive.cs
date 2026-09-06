@@ -9,15 +9,10 @@
  *  Contact    : 微信：AAA-2025-666-888
 ************************************Copyright*****************************************/
 using KNet.Common;
-using System;
 using System.Net.WebSockets;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace KNet.WebSocket.Server
 {
-    using WsWebSocket = System.Net.WebSockets.WebSocket;
-
     internal partial class ClientPeer
     {
         private async Task ReceiveLoopAsync()
@@ -28,11 +23,8 @@ namespace KNet.WebSocket.Server
             {
                 while (true)
                 {
-                    WsWebSocket ws;
-                    lock (mWsLock) { ws = mWebSocket; }
-                    if (ws == null || ws.State != WebSocketState.Open) break;
-
-                    var result = await ws.ReceiveAsync(
+                    if (mWebSocket.State != WebSocketState.Open) break;
+                    var result = await mWebSocket.ReceiveAsync(
                         new ArraySegment<byte>(receiveBuffer), CancellationToken.None)
                         .ConfigureAwait(false);
 

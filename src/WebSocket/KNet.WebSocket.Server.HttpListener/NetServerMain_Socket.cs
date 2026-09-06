@@ -10,6 +10,7 @@
 ************************************Copyright*****************************************/
 using KNet.Common;
 using System.Net;
+using System.Net.WebSockets;
 
 namespace KNet.WebSocket.Server
 {
@@ -45,8 +46,6 @@ namespace KNet.WebSocket.Server
 
                 NetLog.Log($"WebSocket 服务器 初始化成功: {Ip}:{nPort}");
                 mCancellationTokenSource = new CancellationTokenSource();
-                // 自包含：用定时器驱动 ClientPeer.Update（心跳发送 + 超时检测/移除）
-                mUpdateTimer = new Timer(_ => Update(0.1), null, 100, 100);
                 _ = AcceptLoopAsync();
             }
             catch (System.Net.HttpListenerException ex) when (ex.ErrorCode == 5)
@@ -71,16 +70,14 @@ namespace KNet.WebSocket.Server
                     var ctx = await mListener.GetContextAsync().ConfigureAwait(false);
                     if (ctx.Request.IsWebSocketRequest)
                     {
-                        var wsCtx = await ctx.AcceptWebSocketAsync(null).ConfigureAwait(false);
-                        var ws = wsCtx.WebSocket;
-                        var ep = ctx.Request.RemoteEndPoint as IPEndPoint;
-
-                        var wrap = new ClientPeerWrap(this);
-                        wrap.AttachWebSocket(ws, ep);
-                        if (!MultiThreadingHandleConnectedSocket(wrap))
+                        HttpListenerWebSocketContext wsCtx = await ctx.AcceptWebSocketAsync(null).ConfigureAwait(false);
+                        FakeSocket mSocket = new FakeSocket();
+                        mSocket.mWebSocket = wsCtx.WebSocket;
+                        mSocket.mContext = wsCtx;
+                        mSocket.mIPEndPoint = ctx.Request.RemoteEndPoint as IPEndPoint;
+                        if (!MultiThreadingHandleConnectedSocket(mSocket))
                         {
-                            try { ws.Dispose(); } catch { }
-                            wrap.Reset();
+                            try { wsCtx.WebSocket.Dispose(); } catch { }
                         }
                     }
                     else

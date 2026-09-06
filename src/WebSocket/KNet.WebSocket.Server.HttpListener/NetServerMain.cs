@@ -9,9 +9,6 @@
  *  Contact    : 微信：AAA-2025-666-888
 ************************************Copyright*****************************************/
 using KNet.Common;
-using System;
-using System.Collections.Generic;
-using System.Threading;
 
 namespace KNet.WebSocket.Server
 {
@@ -27,13 +24,12 @@ namespace KNet.WebSocket.Server
 
         internal readonly ClientPeerPool mClientPeerPool = null;
         private readonly List<ClientPeerWrap> mClientList = new List<ClientPeerWrap>(0);
-        private readonly Queue<ClientPeerWrap> mConnectSocketQueue = new Queue<ClientPeerWrap>();
+        private readonly Queue<FakeSocket> mConnectSocketQueue = new Queue<FakeSocket>();
 
         private int nPort;
         private SOCKET_SERVER_STATE mState = SOCKET_SERVER_STATE.NONE;
         private CancellationTokenSource mCancellationTokenSource = new CancellationTokenSource();
         private System.Net.HttpListener mListener = null;
-        private Timer mUpdateTimer = null;
         private readonly ConfigInstance mConfigInstance;
         private string mBindIp = null;
 
@@ -88,11 +84,14 @@ namespace KNet.WebSocket.Server
             mPackageManager.removeNetListenFunc(func);
         }
 
-        // 满足 NetServerInterface：无参 Update 由外部主循环每帧调用，转发到带帧间隔的 Update。
-        // HttpListener 自身也用内部 Timer 驱动 Update(double)，二者共用同一实现。
+        FrameUpdateFunc mFrameUpdateFunc = null;
         public void Update()
         {
-            Update(0.016);
+            if (mFrameUpdateFunc == null)
+            {
+                mFrameUpdateFunc = new FrameUpdateFunc();
+            }
+            mFrameUpdateFunc.Update(Update);
         }
 
         public int GetPort() => nPort;
@@ -108,31 +107,25 @@ namespace KNet.WebSocket.Server
             MainThreadCheck.Check();
             mCancellationTokenSource?.Cancel();
 
-            for (int i = mClientList.Count - 1; i >= 0; i--)
-            {
-                mClientList[i].Reset();
-            }
-            mClientList.Clear();
-
-            lock (mConnectSocketQueue)
-            {
-                while (mConnectSocketQueue.Count > 0)
-                {
-                    mConnectSocketQueue.Dequeue()?.Reset();
-                }
-            }
-
-            if (mUpdateTimer != null)
-            {
-                try { mUpdateTimer.Dispose(); } catch { }
-                mUpdateTimer = null;
-            }
-
             if (mListener != null)
             {
                 try { mListener.Stop(); } catch { }
                 mListener = null;
             }
+
+            lock (mConnectSocketQueue)
+            {
+                while (mConnectSocketQueue.Count > 0)
+                {
+                    mConnectSocketQueue.Dequeue().mWebSocket.Dispose();
+                }
+            }
+
+            for (int i = mClientList.Count - 1; i >= 0; i--)
+            {
+                mClientList[i].Dispose();
+            }
+            mClientList.Clear();
 
             mState = SOCKET_SERVER_STATE.NONE;
         }
