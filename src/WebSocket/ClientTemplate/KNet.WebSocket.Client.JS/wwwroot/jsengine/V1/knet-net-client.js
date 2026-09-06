@@ -182,6 +182,27 @@ export const netSend = (id, packageId, data) => {
     return 0;
 };
 
+// 零拷贝发送（V4 用）：view 是 C# 以 MemoryView（指针 + 长度）方式传来的【原始 payload】，
+// JS 侧零拷贝读取后在 wasm 堆上建 Uint8Array 视图，编码成帧并发送，避免 C# byte[]→Uint8Array 的拷贝。
+export const netSendView = (id, packageId, view) => {
+    const inst = instances[id];
+    if (inst && inst.ws && inst.ws.readyState === WebSocket.OPEN) {
+        try {
+            const data = (view && view.byteLength > 0)
+                ? new Uint8Array(view.buffer, view.byteOffset, view.byteLength)
+                : null;
+            inst.ws.send(encodeFrame(packageId, data));
+            stats.sendOk++;
+            return 1;
+        } catch (e) {
+            stats.sendFail++;
+            return 0;
+        }
+    }
+    stats.sendFail++;
+    return 0;
+};
+
 export const netGetState = (id) => {
     const inst = instances[id];
     if (!inst || !inst.ws) return 3;

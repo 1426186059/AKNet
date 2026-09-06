@@ -53,7 +53,14 @@ internal static partial class PerfPanel
 
     // 版本可读标签：日志用，避免直接打印原始枚举名（WebSocketJS_V1/V2）产生歧义
     private static string VersionLabel()
-        => _version == NetType.WebSocketJS_V1 ? "V1 (JS厚封装)" : "V2 (C#厚封装)";
+        => _version switch
+        {
+            NetType.WebSocketJS_V1 => "V1 (JS厚封装)",
+            NetType.WebSocketJS_V2 => "V2 (C#厚封装)",
+            NetType.WebSocketJS_V3 => "V3 (C#厚+零拷贝)",
+            NetType.WebSocketJS_V4 => "V4 (JS厚+零拷贝)",
+            _ => "未知",
+        };
 
     [JSImport("dom.setInnerText", "main.js")]
     internal static partial void SetInnerText(string selector, string content);
@@ -75,8 +82,14 @@ internal static partial class PerfPanel
             _client.Dispose();
             _client = null;
         }
-        _version = v == 1 ? NetType.WebSocketJS_V1 : NetType.WebSocketJS_V2;
-        AppendLog("#log", $"版本切换为: {(_version == NetType.WebSocketJS_V1 ? "V1 (JS厚封装)" : "V2 (C#厚封装)")}");
+        _version = v switch
+        {
+            1 => NetType.WebSocketJS_V1,
+            3 => NetType.WebSocketJS_V3,
+            4 => NetType.WebSocketJS_V4,
+            _ => NetType.WebSocketJS_V2,
+        };
+        AppendLog("#log", $"版本切换为: {VersionLabel()}");
     }
 
     [JSExport]
@@ -176,7 +189,7 @@ internal static partial class PerfPanel
         }
         StopStress();
         // V1 诊断：每次压测开头清零全局统计（ws.send 成败 / onmessage 解出帧数）
-        if (_version == NetType.WebSocketJS_V1) KNet.WebSocket.Client.NetClientMainJS.ResetV1Stats();
+        if (_version == NetType.WebSocketJS_V1 || _version == NetType.WebSocketJS_V4) KNet.WebSocket.Client.NetClientMainJS.ResetV1Stats();
 
         int total = clientCount * perClient;
         _stressRecv = 0;
@@ -255,14 +268,18 @@ internal static partial class PerfPanel
         totalSw.Stop();
         long lost = sent - _stressRecv;
         double lossPct = sent > 0 ? lost * 100.0 / sent : 0.0;
-        AppendLog("#log", $"回显完成: 收到 {_stressRecv}/{sent} 包, 耗时 {recvSw.ElapsedMilliseconds / 1000.0:F2}秒, 往返吞吐 {(_stressRecv / Math.Max(1, recvSw.ElapsedMilliseconds) * 1000.0):F0} 包/s");
+        double totalSec = Math.Max(1, totalSw.ElapsedMilliseconds) / 1000.0;
+        AppendLog("#log", $"回显完成: 收到 {_stressRecv}/{sent} 包, 回显等待 {recvSw.ElapsedMilliseconds / 1000.0:F2}秒");
         AppendLog("#log", $"总耗时(发送→收齐回显): {totalSw.ElapsedMilliseconds / 1000.0:F2}秒 (发送 {sendSw.ElapsedMilliseconds / 1000.0:F2}秒 + 回显等待 {recvSw.ElapsedMilliseconds / 1000.0:F2}秒)");
+        // 往返吞吐以“总耗时(发送+回显等待)”为基准，避免 V2 回显在发送期内收完导致除零出现 10000000 假值
+        AppendLog("#log", $"往返吞吐(总耗时基准): {(sent / totalSec):F0} 包/s ({(sent * body.Length / totalSec / 1024.0):F1} KB/s)");
         AppendLog("#log", $"丢包: {lost} 包 / 共 {sent} 包 ({lossPct:F2}%)" + (lost > 0 ? "  ⚠ 存在丢包" : "  无丢包"));
         AppendLog("#log", $"高并发压测结束: 连接 {connected}, 发送 {sent} 包, 接收 {_stressRecv} 包");
-        if (_version == NetType.WebSocketJS_V1)
+        if (_version == NetType.WebSocketJS_V1 || _version == NetType.WebSocketJS_V4)
         {
             var s = NetClientMainJS.GetV1Stats();
-            AppendLog("#log", $"V1 诊断: ws.send 成功 {s.sendOk} / 失败 {s.sendFail}, onmessage 解出帧 {s.decoded}, onmessage 触发 {s.recvEvents}");
+            string tag = _version == NetType.WebSocketJS_V4 ? "V4" : "V1";
+            AppendLog("#log", $"{tag} 诊断(JS厚封装): ws.send 成功 {s.sendOk} / 失败 {s.sendFail}, onmessage 解出帧 {s.decoded}, onmessage 触发 {s.recvEvents}");
         }
     }
 

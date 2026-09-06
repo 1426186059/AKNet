@@ -36,6 +36,8 @@ setModuleImports('main.js', {
         setXorKey: knetNet.setXorKey,
         netResetStats: knetNet.netResetStats,
         netGetStats: knetNet.netGetStats,
+        netSendView: knetNet.netSendView,
+        wsSendView: knetWs.wsSendView,
     }
 });
 

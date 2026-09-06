@@ -52,9 +52,10 @@ namespace KNet.WebSocket.Client
 
         private readonly ConfigInstance mConfigInstance;
 
-        public NetClientMain(ConfigInstance mConfig = null)
+        public NetClientMain(ConfigInstance mConfig = null, bool zeroCopySend = false)
         {
             this.mConfigInstance = mConfig ?? new ConfigInstance();
+            this.mZeroCopySend = zeroCopySend;
 
             mCryptoMgr = new CryptoMgr();
             mPackageManager = new ListenNetPackageMgr();

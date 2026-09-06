@@ -20,10 +20,20 @@ namespace KNet.Common
                     mInterface = new KNet.WebSocket.Client.NetClientMainJS(mConfigInstance);
                     break;
 
+                case NetType.WebSocketJS_V3:
+                    // V3 = C# 厚封装 + 零拷贝指针发送（MemoryView）
+                    mInterface = new KNet.WebSocket.Client.NetClientMain(mConfigInstance, zeroCopySend: true);
+                    break;
+
+                case NetType.WebSocketJS_V4:
+                    // V4 = JS 厚封装 + 零拷贝指针发送（MemoryView）
+                    mInterface = new KNet.WebSocket.Client.NetClientMainJS(mConfigInstance, zeroCopySend: true);
+                    break;
+
                 case NetType.WebSocketJS_V2:
                 case NetType.WebSocket:
                 default:
-                    // V2 = C# 厚封装（NetClientMain + 浏览器 WebSocket 后端）。
+                    // V2 = C# 厚封装（NetClientMain + 浏览器 WebSocket 后端），默认拷贝发送。
                     mInterface = new KNet.WebSocket.Client.NetClientMain(mConfigInstance);
                     break;
             }

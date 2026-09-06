@@ -46,6 +46,13 @@ namespace KNet.WebSocket.Client
         [JSImport("knet.netGetStats", "main.js")]
         private static partial string NetGetStats();
 
+        // 零拷贝发送：C# 以 MemoryView（指针 + 长度）方式把原始 payload 直接交给 JS，
+        // 避免 byte[] → Uint8Array 的 marshalling 拷贝。JS 侧读取后编码成帧并发送。
+        // 零拷贝发送：Span<byte> 经 MemoryView 直接传 wasm 线性内存指针，JS 侧建 Uint8Array 视图后 ws.send。
+        // 非 byte 类型（如结构体缓冲）可用 MemoryMarshal.AsBytes(structSpan) 先映射成 Span<byte>。
+        [JSImport("knet.netSendView", "main.js")]
+        private static partial int NetSendView(int instanceId, int packageId, [JSMarshalAs<JSType.MemoryView>] Span<byte> data);
+
         #endregion
 
         private readonly ListenNetPackageMgr mPackageManager;
@@ -54,6 +61,7 @@ namespace KNet.WebSocket.Client
         private readonly NetStreamReceivePackage mNetPackage = new NetStreamReceivePackage();
 
         private int mInstanceId = -1;
+        private bool mZeroCopySend;
         private SOCKET_PEER_STATE mSocketPeerState;
         private SOCKET_PEER_STATE mLastSocketPeerState;
         private string mName = string.Empty;
@@ -63,9 +71,10 @@ namespace KNet.WebSocket.Client
         private int nServerPort = 0;
         private double fReConnectServerCdTime = 0.0;
 
-        public NetClientMainJS(ConfigInstance mConfig = null)
+        public NetClientMainJS(ConfigInstance mConfig = null, bool zeroCopySend = false)
         {
             mConfigInstance = mConfig ?? new ConfigInstance();
+            mZeroCopySend = zeroCopySend;
             mPackageManager = new ListenNetPackageMgr();
             mListenClientPeerStateMgr = new ListenClientPeerStateMgr();
             mSocketPeerState = mLastSocketPeerState = SOCKET_PEER_STATE.DISCONNECTED;
@@ -216,7 +225,7 @@ namespace KNet.WebSocket.Client
         public void SendNetData(ushort nPackageId, byte[] data)
         {
             if (GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
-                NetSend(mInstanceId, nPackageId, data ?? Array.Empty<byte>());
+                SendCore(nPackageId, data ?? Array.Empty<byte>());
             else NetLog.LogError("SendNetData Failed: " + GetSocketState());
         }
 
@@ -226,9 +235,18 @@ namespace KNet.WebSocket.Client
             {
                 byte[] arr = new byte[buffer.Length];
                 buffer.CopyTo(arr);
-                NetSend(mInstanceId, nPackageId, arr);
+                SendCore(nPackageId, arr);
             }
             else NetLog.LogError("SendNetData Failed: " + GetSocketState());
+        }
+
+        // 发送核心：按 mZeroCopySend 选择「MemoryView 指针零拷贝」或「byte[] 默认拷贝」路径。
+        private void SendCore(ushort nPackageId, byte[] data)
+        {
+            int r = mZeroCopySend
+                ? NetSendView(mInstanceId, nPackageId, data.AsSpan())   // 零拷贝：byte[] → Span<byte> 视图
+                : NetSend(mInstanceId, nPackageId, data);
+            if (r == 0) NetLog.LogWarning("WebSocket(V1) 发送失败，连接可能已断开");
         }
 
         public void SendNetData(NetPackage mNetPackage)

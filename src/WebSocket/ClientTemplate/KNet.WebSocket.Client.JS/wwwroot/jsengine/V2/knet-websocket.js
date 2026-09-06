@@ -52,6 +52,24 @@ export const wsSend = (id, data) => {
     return 0;
 };
 
+// 零拷贝发送（V3 用）：view 是 C# 以 MemoryView（指针 + 长度）方式传来的【已编码帧】，
+// 直接在 wasm 线性内存上建 Uint8Array 视图后 ws.send，避免 byte[]→Uint8Array 的 marshalling 拷贝。
+export const wsSendView = (id, view) => {
+    const inst = instances[id];
+    if (inst && inst.ws && inst.ws.readyState === WebSocket.OPEN) {
+        try {
+            const u8 = (view && view.byteLength > 0)
+                ? new Uint8Array(view.buffer, view.byteOffset, view.byteLength)
+                : new Uint8Array(0);
+            inst.ws.send(u8);
+            return 1;
+        } catch (e) {
+            return 0;
+        }
+    }
+    return 0;
+};
+
 export const wsGetState = (id) => {
     const inst = instances[id];
     if (!inst || !inst.ws) return 3; // CLOSED
