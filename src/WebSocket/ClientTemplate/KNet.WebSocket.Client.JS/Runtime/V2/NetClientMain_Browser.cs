@@ -31,14 +31,14 @@ namespace KNet.WebSocket.Client
         private static partial void WsClose(int instanceId);
 
         [JSImport("knet.wsSend", "main.js")]
-        private static partial int WsSend(int instanceId, ReadOnlySpan<byte> data);
+        private static partial int WsSend(int instanceId, byte[] data);
 
         // 零拷贝发送：C# 把已编码帧以 MemoryView（指针 + 长度）方式直接交给 JS，
         // 避免 byte[] → Uint8Array 的 marshalling 拷贝。JS 侧在 wasm 堆上建 Uint8Array 视图后 ws.send。
         // 参数用 Span<byte>：ArraySegment/byte[] 经 AsSpan()（或更通用的 MemoryMarshal.AsBytes(structSpan)）
         // 映射为零拷贝视图，底层即直接传 wasm 线性内存指针。
         [JSImport("knet.wsSendView", "main.js")]
-        private static partial int WsSendView(int instanceId, [JSMarshalAs<JSType.MemoryView>] ReadOnlySpan<byte> data);
+        private static partial int WsSendView(int instanceId, [JSMarshalAs<JSType.MemoryView>] Span<byte> data);
 
         [JSImport("knet.wsGetState", "main.js")]
         private static partial int WsGetState(int instanceId);
@@ -112,8 +112,8 @@ namespace KNet.WebSocket.Client
             mBufferSegment.CopyTo(slice);
 
             int result = mZeroCopySend
-                ? WsSendView(mInstanceId, mBufferSegment)   // 零拷贝：byte[] → Span<byte> 视图，不拷贝
-                : WsSend(mInstanceId, mBufferSegment);
+                ? WsSendView(mInstanceId, slice)   // 零拷贝：byte[] → Span<byte> 视图，不拷贝
+                : WsSend(mInstanceId, slice);
             if (result == 0)
             {
                 NetLog.LogWarning("WebSocket(V2) 发送失败，连接可能已断开");
