@@ -82,7 +82,7 @@ namespace KNet.WebSocket.Server
                 mConnectSocketQueue.TryDequeue(out mSocket);
             }
 
-            if (mSocket.mContext != null)
+            if (mSocket.mWebSocket != null)
             {
                 ClientPeerWrap clientPeer = new ClientPeerWrap(this);
                 clientPeer.HandleConnectedSocket(mSocket);

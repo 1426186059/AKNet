@@ -9,7 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\KNet.Common\KNet.Common.csproj" />
-    <ProjectReference Include="..\..\..\WebSocket\KNet.WebSocket.Server.HttpListener\KNet.WebSocket.Server.HttpListener.csproj" />
+    <ProjectReference Include="..\..\..\WebSocket\KNet.WebSocket.Server.TcpListener\KNet.WebSocket.Server.TcpListener.csproj" />
     <ProjectReference Include="..\..\TestCommon\TestCommon.csproj" />
   </ItemGroup>
 

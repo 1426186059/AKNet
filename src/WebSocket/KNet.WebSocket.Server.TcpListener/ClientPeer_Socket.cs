@@ -13,6 +13,7 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Net.WebSockets;
+using System.Buffers;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -29,43 +30,51 @@ namespace KNet.WebSocket.Server
 
         public void PerformWebSocketHandshake(Socket socket)
         {
+            // 复用缓冲池，避免每次握手都 new 一个 4KB 数组（高频建连时显著减少 GC 压力）。
+            var buffer = ArrayPool<byte>.Shared.Rent(4096);
             try
             {
-                mTcpClient = new System.Net.Sockets.TcpClient();
-                mTcpClient.Client = socket;
-                var stream = mTcpClient.GetStream();
+                try
+                {
+                    mTcpClient = new System.Net.Sockets.TcpClient();
+                    mTcpClient.Client = socket;
+                    var stream = mTcpClient.GetStream();
 
-                byte[] buffer = new byte[4096];
-                int bytesRead = stream.Read(buffer, 0, buffer.Length);
-                if (bytesRead <= 0) { DisConnectedWithNormal(); return; }
+                    int bytesRead = stream.Read(buffer, 0, buffer.Length);
+                    if (bytesRead <= 0) { DisConnectedWithNormal(); return; }
 
-                string request = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-                if (!request.Contains("Upgrade: websocket", StringComparison.OrdinalIgnoreCase))
-                { DisConnectedWithNormal(); return; }
+                    string request = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+                    if (!request.Contains("Upgrade: websocket", StringComparison.OrdinalIgnoreCase))
+                    { DisConnectedWithNormal(); return; }
 
-                string key = ExtractWebSocketKey(request);
-                if (string.IsNullOrEmpty(key)) { DisConnectedWithNormal(); return; }
+                    string key = ExtractWebSocketKey(request);
+                    if (string.IsNullOrEmpty(key)) { DisConnectedWithNormal(); return; }
 
-                string acceptKey = WebSocketHelpers.ComputeAcceptKey(key);
-                byte[] responseBytes = Encoding.UTF8.GetBytes(
-                    $"HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: {acceptKey}\r\n\r\n");
-                stream.Write(responseBytes, 0, responseBytes.Length);
-                stream.Flush();
+                    string acceptKey = WebSocketHelpers.ComputeAcceptKey(key);
+                    byte[] responseBytes = Encoding.UTF8.GetBytes(
+                        $"HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: {acceptKey}\r\n\r\n");
+                    stream.Write(responseBytes, 0, responseBytes.Length);
+                    stream.Flush();
 
-                lock (mWsLock) { mWebSocket = WsWebSocket.CreateFromStream(stream, true, null, TimeSpan.FromSeconds(30)); }
+                    lock (mWsLock) { mWebSocket = WsWebSocket.CreateFromStream(stream, true, null, TimeSpan.FromSeconds(30)); }
 
-                var remoteEp = socket.RemoteEndPoint as IPEndPoint;
-                if (remoteEp != null) mIPEndPoint = new IPEndPoint(remoteEp.Address, remoteEp.Port);
+                    var remoteEp = socket.RemoteEndPoint as IPEndPoint;
+                    if (remoteEp != null) mIPEndPoint = new IPEndPoint(remoteEp.Address, remoteEp.Port);
 
-                MainThreadCheck.Check();
-                SetSocketState(SOCKET_PEER_STATE.CONNECTED);
-                _ = Task.Run(ReceiveLoopAsync);
+                    MainThreadCheck.Check();
+                    SetSocketState(SOCKET_PEER_STATE.CONNECTED);
+                    _ = Task.Run(ReceiveLoopAsync);
+                }
+                catch (Exception e)
+                {
+                    MainThreadCheck.Check();
+                    NetLog.LogWarning($"握手异常: {e.Message}");
+                    DisConnectedWithNormal();
+                }
             }
-            catch (Exception e)
+            finally
             {
-                MainThreadCheck.Check();
-                NetLog.LogWarning($"握手异常: {e.Message}");
-                DisConnectedWithNormal();
+                ArrayPool<byte>.Shared.Return(buffer);
             }
         }
 
@@ -134,10 +143,16 @@ namespace KNet.WebSocket.Server
 
         private static string ExtractWebSocketKey(string request)
         {
-            foreach (var line in request.Split('\n'))
-                if (line.StartsWith("Sec-WebSocket-Key:", StringComparison.OrdinalIgnoreCase))
-                    return line.Substring("Sec-WebSocket-Key:".Length).Trim();
-            return string.Empty;
+            // 避免 Split 分配字符串数组与每行子串；直接扫描目标响应头行。
+            const string header = "Sec-WebSocket-Key:";
+            int idx = request.IndexOf(header, StringComparison.OrdinalIgnoreCase);
+            if (idx < 0) return string.Empty;
+            int start = idx + header.Length;
+            int end = request.IndexOf('\n', start);
+            if (end < 0) end = request.Length;
+            while (start < end && (request[start] == ' ' || request[start] == '\t')) start++;
+            while (end > start && (request[end - 1] == '\r' || request[end - 1] == ' ' || request[end - 1] == '\t')) end--;
+            return request.Substring(start, end - start);
         }
     }
 }

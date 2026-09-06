@@ -73,7 +73,6 @@ namespace KNet.WebSocket.Server
                         HttpListenerWebSocketContext wsCtx = await ctx.AcceptWebSocketAsync(null).ConfigureAwait(false);
                         FakeSocket mSocket = new FakeSocket();
                         mSocket.mWebSocket = wsCtx.WebSocket;
-                        mSocket.mContext = wsCtx;
                         mSocket.mIPEndPoint = ctx.Request.RemoteEndPoint as IPEndPoint;
                         if (!MultiThreadingHandleConnectedSocket(mSocket))
                         {
