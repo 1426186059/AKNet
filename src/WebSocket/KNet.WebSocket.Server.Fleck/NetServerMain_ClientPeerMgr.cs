@@ -1,7 +1,9 @@
 // ClientPeer 管理器：活跃连接登记/移除、心跳超时检测、状态变更派发。
+using Fleck;
 using KNet.Common;
 using System;
 using System.Collections.Generic;
+using System.Net.Sockets;
 using System.Threading;
 
 namespace KNet.WebSocket.Server
@@ -16,69 +18,103 @@ namespace KNet.WebSocket.Server
         public void Update(double elapsed)
         {
             if (elapsed >= 0.3) NetLog.LogWarning("帧 时间 太长: " + elapsed);
-
-            // 仅用短锁拷贝一份快照；随后遍历快照、peer.Update、peer.Dispose 均在锁外执行
-            ClientPeer[] snapshot;
-            lock (mClientListLock) { snapshot = mClientList.ToArray(); }
-
-            List<ClientPeer> toRemove = null;
-            foreach (var peer in snapshot)
+            
+            while (CreateClientPeer())
             {
-                peer.Update(elapsed); // 锁外：可能含网络发送，耗时不应阻塞其它线程的增删
-                if (peer.GetSocketState() != SOCKET_PEER_STATE.CONNECTED)
+
+            }
+
+            for (int i = mClientList.Count - 1; i >= 0; i--)
+            {
+                ClientPeerWrap mClientPeer = mClientList[i];
+                if (mClientPeer.GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
                 {
-                    (toRemove ??= new List<ClientPeer>()).Add(peer);
+                    mClientPeer.Update(elapsed);
+                }
+                else
+                {
+                    mClientList.RemoveAt(i);
+                    PrintRemoveClientMsg(mClientPeer);
+                    mClientPeer.Reset();
                 }
             }
 
-            if (toRemove != null)
+        }
+
+        public bool MultiThreadingHandleConnectedSocket(ClientPeer mSocket)
+        {
+            int nNowConnectCount = mClientList.Count + mConnectSocketQueue.Count;
+            if (nNowConnectCount >= this.mConfigInstance.MaxPlayerCount)
             {
-                // 仅“真正把 peer 移出列表”的一方负责释放与通知（Remove 返回 true 时），保证 Dispose/通知恰好一次
-                // 移除本身在短锁内完成；Dispose 在锁外，避免 OnClose 回调再取锁时死锁
-                List<ClientPeer> removed = null;
-                lock (mClientListLock)
+#if DEBUG
+                NetLog.Log($"WebSocket 服务器爆满, 客户端总数: {nNowConnectCount}");
+#endif
+                return false;
+            }
+            else
+            {
+                lock (mConnectSocketQueue)
                 {
-                    foreach (var peer in toRemove)
-                    {
-                        if (mClientList.Remove(peer)) (removed ??= new List<ClientPeer>()).Add(peer);
-                    }
+                    mConnectSocketQueue.Enqueue(mSocket);
                 }
-                if (removed != null)
-                {
-                    foreach (var peer in removed)
-                    {
-                        try { peer.Dispose(); } catch { }
-                        NotifyDisconnected(peer);
-                    }
-                }
+                return true;
             }
         }
 
-        public void OnClientConnected(ClientPeer peer)
+        private bool CreateClientPeer()
         {
-            peer.SetSocketState(SOCKET_PEER_STATE.CONNECTED);
-            lock (mClientListLock) { mClientList.Add(peer); }
-            OnSocketStateChanged(peer);
-            NetLog.Log($"[Fleck] 客户端连接: {peer.GetIPEndPoint()}  当前在线: {GetClientCount()}");
-        }
-
-        public void OnClientDisconnected(ClientPeer peer)
-        {
-            bool bRemoved;
-            lock (mClientListLock) { bRemoved = mClientList.Remove(peer); }
-            peer.SetSocketState(SOCKET_PEER_STATE.DISCONNECTED);
-            if (bRemoved)
+            ClientPeer mSocket = null;
+            lock (mConnectSocketQueue)
             {
-                // 由真正将其移出列表的一方负责释放与通知（与 Update 超时移除路径一致），避免重复
-                try { peer.Dispose(); } catch { }
-                NotifyDisconnected(peer);
+                mConnectSocketQueue.TryDequeue(out mSocket);
             }
+            if (mSocket != null)
+            {
+                ClientPeerWrap clientPeer = new ClientPeerWrap(mSocket, this);
+                if (clientPeer.GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
+                {
+                    mClientList.Add(clientPeer);
+                    PrintAddClientMsg(clientPeer);
+                }
+                else
+                {
+                    clientPeer.Reset();
+                }
+                return true;
+            }
+            return false;
         }
 
-        private void NotifyDisconnected(ClientPeer peer)
+
+        private void PrintAddClientMsg(ClientPeerWrap clientPeer)
         {
-            OnSocketStateChanged(peer);
-            NetLog.Log($"[Fleck] 客户端断开: {peer.GetIPEndPoint()}  当前在线: {GetClientCount()}");
+#if DEBUG
+            var mRemoteEndPoint = clientPeer.GetIPEndPoint();
+            if (mRemoteEndPoint != null)
+            {
+                NetLog.Log($"WebSocket 增加客户端: {mRemoteEndPoint}, 客户端总数: {mClientList.Count}");
+            }
+            else
+            {
+                NetLog.Log($"WebSocket 增加客户端, 客户端总数: {mClientList.Count}");
+            }
+#endif
         }
+
+        private void PrintRemoveClientMsg(ClientPeerWrap clientPeer)
+        {
+#if DEBUG
+            var mRemoteEndPoint = clientPeer.GetIPEndPoint();
+            if (mRemoteEndPoint != null)
+            {
+                NetLog.Log($"WebSocket 移除客户端: {mRemoteEndPoint}, 客户端总数: {mClientList.Count}");
+            }
+            else
+            {
+                NetLog.Log($"WebSocket 移除客户端, 客户端总数: {mClientList.Count}");
+            }
+#endif
+        }
+
     }
 }

@@ -1,10 +1,8 @@
 // 传输层：用 Fleck 启动 WebSocket 服务并完成连接事件接线。
+using Fleck;
 using KNet.Common;
-using System;
 using System.Net;
 using System.Net.Sockets;
-using System.Threading;
-using Fleck;
 
 namespace KNet.WebSocket.Server
 {
@@ -19,19 +17,16 @@ namespace KNet.WebSocket.Server
             mServer = new WebSocketServer($"ws://0.0.0.0:{nPort}");
             mServer.Start(socket =>
             {
-                var peer = new ClientPeer(socket, this);
+                ClientPeer mClientPeer = new ClientPeer(socket, this);
                 socket.OnOpen = () =>
                 {
-                    peer.SetEndPoint(new IPEndPoint(IPAddress.Parse(socket.ConnectionInfo.ClientIpAddress), socket.ConnectionInfo.ClientPort));
-                    OnClientConnected(peer);
+                    MultiThreadingHandleConnectedSocket(mClientPeer);
                 };
-                socket.OnClose = () => OnClientDisconnected(peer);
+                socket.OnClose = () => OnClientDisconnected(mClientPeer);
                 // KNet 使用二进制帧承载协议包；文本帧不解析为协议包
-                socket.OnBinary = bytes => peer.OnBinaryReceived(bytes);
+                socket.OnBinary = bytes => mClientPeer.OnBinaryReceived(bytes);
                 socket.OnMessage = _ => { };
             });
-            // 事件驱动服务器没有主循环，用定时器驱动 ClientPeer.Update（心跳发送 + 超时检测/移除）
-            mUpdateTimer = new Timer(_ => Update(0.1), null, 100, 100);
             NetLog.Log($"[Fleck] WebSocket 服务器 初始化成功: 0.0.0.0:{nPort}");
         }
 

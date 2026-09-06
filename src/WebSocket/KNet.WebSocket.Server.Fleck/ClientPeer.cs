@@ -26,12 +26,16 @@ namespace KNet.WebSocket.Server
         private double fSendHeartBeatTime = 0.0;
         private double fReceiveHeartBeatTime = 0.0;
 
-        public ClientPeer(IWebSocketConnection socket, NetServerMain serverMgr) { mSocket = socket; mServerMgr = serverMgr; }
+        ClientPeerWrap mWrap;
+
+        public ClientPeer(IWebSocketConnection socket, NetServerMain serverMgr) 
+        { 
+            mSocket = socket; 
+            mServerMgr = serverMgr;
+        }
 
         public void SetSocketState(SOCKET_PEER_STATE state) { mSocketPeerState = state; }
         public SOCKET_PEER_STATE GetSocketState() => mSocketPeerState;
-        public IPEndPoint GetIPEndPoint() => mIPEndPoint;
-        internal void SetEndPoint(IPEndPoint ep) { mIPEndPoint = ep; }
 
         public void SetName(string name) { mName = name; }
         public string GetName() => mName;
@@ -62,5 +66,12 @@ namespace KNet.WebSocket.Server
         }
 
         private void ReceiveHeartBeat() { fReceiveHeartBeatTime = 0.0; }
+        
+
+        public void SetWrap(ClientPeerWrap mWrap)
+        {
+            this.mWrap = mWrap;
+        }
+
     }
 }
