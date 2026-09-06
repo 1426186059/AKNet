@@ -63,7 +63,7 @@ namespace KNet.WebSocket.Server
                 this.mTcpListener.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
                 this.mTcpListener.Start(this.mConfigInstance.MaxPlayerCount);
 
-                NetLog.Log($"WebSocket 服务器 初始化成功: {Ip}:{nPort}");
+                NetLog.Log($"WebSocket [TcpListener] 服务器 初始化成功: {Ip}:{nPort}");
                 mCancellationTokenSource = new CancellationTokenSource();
                 mAcceptTask = AcceptLoopAsync();
             }
