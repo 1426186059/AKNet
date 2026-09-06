@@ -1,4 +1,7 @@
-﻿using KNet.Common;
+﻿
+
+using KNet.Common;
+using KNet.WebSocket.Server;
 
 namespace TestNetServer
 {
@@ -6,7 +9,7 @@ namespace TestNetServer
     {
         public override NetServerInterface Create()
         {
-            return new NetServerMain(NetType.WebSocket);
+            return new NetServerMain();
         }
     }
 

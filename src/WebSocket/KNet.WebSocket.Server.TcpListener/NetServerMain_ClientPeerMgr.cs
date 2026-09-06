@@ -13,7 +13,7 @@ using System.Net.Sockets;
 
 namespace KNet.WebSocket.Server
 {
-    internal partial class NetServerMain : NetServerInterface
+    public partial class NetServerMain : NetServerInterface
     {
         // ClientPeer 管理器：遍历活跃连接、心跳超时检测与移除
         public void Update(double elapsed)

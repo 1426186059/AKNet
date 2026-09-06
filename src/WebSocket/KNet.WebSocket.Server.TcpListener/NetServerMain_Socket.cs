@@ -18,7 +18,7 @@ using System.Threading.Tasks;
 
 namespace KNet.WebSocket.Server
 {
-    internal partial class NetServerMain : NetServerInterface
+    public partial class NetServerMain : NetServerInterface
     {
         // 传输层：原生 TcpListener + 自建 RFC6455 握手
         public void InitNet()

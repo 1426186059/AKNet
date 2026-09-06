@@ -14,7 +14,7 @@ using System.Text;
 
 namespace KNet.WebSocket
 {
-    internal static class WebSocketHelpers
+    public static class WebSocketHelpers
     {
         private const string WebSocketMagicString = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 

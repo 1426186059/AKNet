@@ -11,17 +11,13 @@
 using KNet.Common;
 using System;
 using System.Collections.Generic;
-using System.Net;
 using System.Net.Sockets;
-using System.Net.WebSockets;
-using System.Text;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace KNet.WebSocket.Server
 {
-    internal partial class NetServerMain : NetServerInterface
+    public partial class NetServerMain : NetServerInterface
     {
         // 复用 KNet.Common 的通用管理器（与客户端/包分发一致）
         internal readonly ListenClientPeerStateMgr mListenClientPeerStateMgr = new ListenClientPeerStateMgr();
