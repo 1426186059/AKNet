@@ -37,7 +37,7 @@ setModuleImports('main.js', {
         netResetStats: knetNet.netResetStats,
         netGetStats: knetNet.netGetStats,
         netSendView: knetNet.netSendView,
-        wsSendView: knetWs.wsSendView,
+        wsSendPointer: knetWs.wsSendPointer,
     }
 });
 

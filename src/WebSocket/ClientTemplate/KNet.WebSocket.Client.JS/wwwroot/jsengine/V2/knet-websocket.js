@@ -39,11 +39,14 @@ export const wsClose = (id) => {
     delete instances[id];
 };
 
-export const wsSend = (id, data) => {
+// 拷贝发送：支持子区间（offset/length）。data 为 C# 默认 marshalling 拷贝过来的 Uint8Array，
+// 用 subarray 取出 [offset, offset+length) 这一段再 ws.send，避免调用方每次都为子区间 new 数组。
+export const wsSend = (id, data, offset = 0, length = data.length) => {
     const inst = instances[id];
     if (inst && inst.ws && inst.ws.readyState === WebSocket.OPEN) {
         try {
-            inst.ws.send(data);
+            const u8 = (offset === 0 && length === data.length) ? data : data.subarray(offset, offset + length);
+            inst.ws.send(u8);
             return 1;
         } catch (e) {
             return 0;
@@ -52,14 +55,17 @@ export const wsSend = (id, data) => {
     return 0;
 };
 
-// 零拷贝发送（V3 用）：view 是 C# 以 MemoryView（指针 + 长度）方式传来的【已编码帧】，
-// 直接在 wasm 线性内存上建 Uint8Array 视图后 ws.send，避免 byte[]→Uint8Array 的 marshalling 拷贝。
-export const wsSendView = (id, view) => {
+// 指针发送（零拷贝，V3 用）：view 是 C# 以 MemoryView 传来的【wasm 线性内存指针 + 长度】。
+// view.byteOffset 即 C# 侧的指针（字节在 wasm 堆中的偏移），view.byteLength 即长度，
+// view.buffer 即 wasm 堆的 ArrayBuffer。直接在其上建 Uint8Array 视图后 ws.send，零拷贝。
+export const wsSendPointer = (id, view) => {
     const inst = instances[id];
     if (inst && inst.ws && inst.ws.readyState === WebSocket.OPEN) {
         try {
-            const u8 = (view && view.byteLength > 0)
-                ? new Uint8Array(view.buffer, view.byteOffset, view.byteLength)
+            const ptr = view.byteOffset;       // 指针（wasm 堆偏移）
+            const len = view.byteLength;       // 长度
+            const u8 = (view && len > 0)
+                ? new Uint8Array(view.buffer, ptr, len)
                 : new Uint8Array(0);
             inst.ws.send(u8);
             return 1;

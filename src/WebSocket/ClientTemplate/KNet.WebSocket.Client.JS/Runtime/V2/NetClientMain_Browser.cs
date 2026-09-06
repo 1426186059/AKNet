@@ -30,15 +30,18 @@ namespace KNet.WebSocket.Client
         [JSImport("knet.wsClose", "main.js")]
         private static partial void WsClose(int instanceId);
 
+        // 拷贝发送：支持子区间（offset/length），调用方可直接指定要发的字节范围，无需每次 new 整个数组。
         [JSImport("knet.wsSend", "main.js")]
-        private static partial int WsSend(int instanceId, byte[] data);
+        private static partial int WsSend(int instanceId, byte[] data, int offset, int length);
 
-        // 零拷贝发送：C# 把已编码帧以 MemoryView（指针 + 长度）方式直接交给 JS，
-        // 避免 byte[] → Uint8Array 的 marshalling 拷贝。JS 侧在 wasm 堆上建 Uint8Array 视图后 ws.send。
-        // 参数用 Span<byte>：ArraySegment/byte[] 经 AsSpan()（或更通用的 MemoryMarshal.AsBytes(structSpan)）
-        // 映射为零拷贝视图，底层即直接传 wasm 线性内存指针。
-        [JSImport("knet.wsSendView", "main.js")]
-        private static partial int WsSendView(int instanceId, [JSMarshalAs<JSType.MemoryView>] Span<byte> data);
+        // 指针发送（零拷贝）：C# 以 MemoryView 把“wasm 线性内存指针 + 长度”直接交给 JS。
+        // MemoryView 在 JS 侧表现为 { buffer(=wasm 堆 ArrayBuffer), byteOffset(=指针), byteLength(=长度) }，
+        // JS 取出 view.byteOffset 作为指针、view.byteLength 作为长度，在 wasm 堆上建 Uint8Array 视图后 ws.send，
+        // 避免 byte[] → Uint8Array 的 marshalling 拷贝。
+        // 注：此 .NET wasm 运行时未暴露 getMemory，裸 IntPtr 无法被 JS 读取；MemoryView 是唯一可用的
+        // “传指针+长度”机制，其 byteOffset 即等价于 C# 侧的指针。
+        [JSImport("knet.wsSendPointer", "main.js")]
+        private static partial int WsSendPointer(int instanceId, [JSMarshalAs<JSType.MemoryView>] Span<byte> data);
 
         [JSImport("knet.wsGetState", "main.js")]
         private static partial int WsGetState(int instanceId);
@@ -112,8 +115,8 @@ namespace KNet.WebSocket.Client
             mBufferSegment.CopyTo(slice);
 
             int result = mZeroCopySend
-                ? WsSendView(mInstanceId, slice)   // 零拷贝：byte[] → Span<byte> 视图，不拷贝
-                : WsSend(mInstanceId, slice);
+                ? WsSendPointer(mInstanceId, slice.AsSpan())   // 零拷贝：byte[] → Span<byte> 视图（指针+长度），不拷贝
+                : WsSend(mInstanceId, slice, 0, slice.Length); // 拷贝：子区间发送（offset=0, length=全长）
             if (result == 0)
             {
                 NetLog.LogWarning("WebSocket(V2) 发送失败，连接可能已断开");
