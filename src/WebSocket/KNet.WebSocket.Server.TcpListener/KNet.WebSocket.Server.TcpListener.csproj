@@ -4,6 +4,9 @@
 	<LangVersion>latest</LangVersion>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- 保持 AssemblyName=KNet.WebSocket.Server：KNet.Common 通过 InternalsVisibleTo("KNet.WebSocket.Server") 暴露内部类 -->
+    <AssemblyName>KNet.WebSocket.Server</AssemblyName>
+    <RootNamespace>KNet.WebSocket.Server</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\KNet.Common\KNet.Common.csproj" />

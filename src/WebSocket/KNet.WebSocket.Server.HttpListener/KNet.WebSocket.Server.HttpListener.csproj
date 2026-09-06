@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>KNet.WebSocket.Server.HttpListener</AssemblyName>
+    <RootNamespace>KNet.WebSocket.Server.HttpListener</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\KNet.Common\KNet.Common.csproj" />
+  </ItemGroup>
+
+</Project>
