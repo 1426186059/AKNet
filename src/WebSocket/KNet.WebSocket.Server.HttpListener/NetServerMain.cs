@@ -22,9 +22,9 @@ namespace KNet.WebSocket.Server
         public SOCKET_SERVER_STATE GetServerState() => mState;
 
         private readonly Dictionary<ushort, Action<ClientPeerBase, NetPackage>> mNetEventDic = new Dictionary<ushort, Action<ClientPeerBase, NetPackage>>();
-        private Action<ClientPeerBase, NetPackage> mCommonListenFunc;
-        private Action<ClientPeerBase, SOCKET_PEER_STATE> mStateFunc1;
-        private Action<ClientPeerBase> mStateFunc2;
+        private Action<ClientPeerBase, NetPackage> mCommonListenFunc = null;
+        private Action<ClientPeerBase, SOCKET_PEER_STATE> mStateFunc1 = null;
+        private Action<ClientPeerBase> mStateFunc2 = null;
 
         public void addNetListenFunc(Action<ClientPeerBase, NetPackage> func) { mCommonListenFunc += func; }
         public void removeNetListenFunc(Action<ClientPeerBase, NetPackage> func) { mCommonListenFunc -= func; }
@@ -153,54 +153,6 @@ namespace KNet.WebSocket.Server
             int p = ((IPEndPoint)l.LocalEndpoint).Port;
             l.Stop();
             return p;
-        }
-
-        public class ClientPeer : ClientPeerBase
-        {
-            private readonly System.Net.WebSockets.WebSocket mWs;
-            private SOCKET_PEER_STATE mSocketPeerState = SOCKET_PEER_STATE.DISCONNECTED;
-            private IPEndPoint mIPEndPoint = null;
-            private string mName = string.Empty;
-            private uint mID;
-            private object mOwner = null;
-
-            public ClientPeer(System.Net.WebSockets.WebSocket ws, IPEndPoint ep) { mWs = ws; mIPEndPoint = ep; }
-
-            public void SetSocketState(SOCKET_PEER_STATE state) { mSocketPeerState = state; }
-            public SOCKET_PEER_STATE GetSocketState() => mSocketPeerState;
-            public IPEndPoint GetIPEndPoint() => mIPEndPoint;
-
-            public void SendNetData(ushort nPackageId) { }
-            public void SendNetData(ushort nPackageId, byte[] data) { SendBinary(data); }
-            public void SendNetData(ushort nPackageId, ReadOnlySpan<byte> buffer) { SendBinary(buffer.ToArray()); }
-            public void SendNetData(NetPackage mNetPackage) { SendBinary(mNetPackage.GetData().ToArray()); }
-            public void SendNetData(byte[] data) { SendBinary(data); }
-            public void SendNetData(ReadOnlySpan<byte> data) { SendBinary(data.ToArray()); }
-
-            private void SendBinary(byte[] data)
-            {
-                if (mSocketPeerState != SOCKET_PEER_STATE.CONNECTED) return;
-                try { mWs.SendAsync(new ArraySegment<byte>(data), WebSocketMessageType.Binary, true, CancellationToken.None).GetAwaiter().GetResult(); }
-                catch { }
-            }
-
-            public void SetName(string name) { mName = name; }
-            public string GetName() => mName;
-            public void SetID(uint id) { mID = id; }
-            public uint GetID() => mID;
-            public void SetOwner(object owner) { mOwner = owner; }
-            public object GetOwner() => mOwner;
-
-            public void Dispose() { try { mWs.Dispose(); } catch { } }
-        }
-
-        internal class NetPackageImpl : NetPackage
-        {
-            private readonly ushort mId;
-            private readonly byte[] mData;
-            public NetPackageImpl(ushort id, byte[] data) { mId = id; mData = data; }
-            public ushort GetPackageId() => mId;
-            public ReadOnlySpan<byte> GetData() => mData;
         }
     }
 }

@@ -55,6 +55,14 @@
   </div>
 
   <div class="row">
+    <label>高并发:</label>
+    <input id="clientCount" value="100" style="width:60px" /> 连接 ×
+    <input id="perClient" value="10000" style="width:80px" /> 包
+    <button id="stress">压测</button>
+    <button id="stopStress">停止</button>
+  </div>
+
+  <div class="row">
     <span class="stat">状态: <b id="state">未连接</b></span>
     <span class="stat">发送: <b id="sent">0</b></span>
     <span class="stat">接收: <b id="recv">0</b></span>
@@ -86,6 +94,9 @@
       document.getElementById('burst').onclick = () =>
         call('BurstSend', parseInt(document.getElementById('count').value), parseInt(document.getElementById('bodySize').value));
       document.getElementById('clearLog').onclick = () => call('ClearLog');
+      document.getElementById('stress').onclick = () =>
+        call('StressTest', parseInt(document.getElementById('clientCount').value), parseInt(document.getElementById('perClient').value));
+      document.getElementById('stopStress').onclick = () => call('StopStress');
     };
     bindUI();
   </script>

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices.JavaScript;
 using System.Threading.Tasks;
@@ -33,6 +34,12 @@ internal static partial class PerfPanel
     private static long _lastSentPackets;
     private static long _lastRecvPackets;
     private static double _lastTime;
+
+    // 高并发压测状态
+    private static List<NetClientInterface> _stressClients = new List<NetClientInterface>();
+    private static long _stressRecv;
+    private static string _lastHost = "127.0.0.1";
+    private static int _lastPort = 9000;
 
     public static void Start() => _sw.Start();
 
@@ -82,6 +89,8 @@ internal static partial class PerfPanel
             AppendLog("#log", "端口无效");
             return;
         }
+        _lastHost = host;
+        _lastPort = port;
 
         _client = new NetClientMain(_version).GetInstance();
         _client.addListenClientPeerStateFunc(peer =>
@@ -141,12 +150,95 @@ internal static partial class PerfPanel
         SetInnerText("#log", "");
     }
 
+    /// <summary>
+    /// 高并发压测（类似 NetTestClientBase）：clientCount 个连接，每连接发送 perClient 包，
+    /// 合计 clientCount×perClient 包（默认 100×10000 = 1,000,000），用 Stopwatch 统计发送耗时与回显吞吐。
+    /// </summary>
+    [JSExport]
+    internal static async Task StressTest(int clientCount, int perClient)
+    {
+        if (clientCount <= 0 || perClient <= 0)
+        {
+            AppendLog("#log", "参数无效（连接数与每连接包数均需 > 0）");
+            return;
+        }
+        StopStress();
+
+        int total = clientCount * perClient;
+        _stressRecv = 0;
+        byte[] body = new byte[64];
+        for (int i = 0; i < body.Length; i++) body[i] = (byte)(i & 0xff);
+
+        AppendLog("#log", $"高并发压测开始: {clientCount} 连接 × {perClient} 包 = {total} 包 -> {_lastHost}:{_lastPort} ({_version})");
+
+        // 1) 创建并连接所有客户端
+        for (int i = 0; i < clientCount; i++)
+        {
+            var c = new NetClientMain(_version).GetInstance();
+            c.addListenClientPeerStateFunc(p => { });
+            c.addNetListenFunc((peer, pkg) => { _stressRecv++; });
+            c.ConnectServer(_lastHost, _lastPort);
+            _stressClients.Add(c);
+        }
+
+        // 2) 等待全部连接（让出事件循环以便 WebSocket 回调执行）
+        int connected = 0;
+        var connectSw = Stopwatch.StartNew();
+        while (connected < clientCount && connectSw.ElapsedMilliseconds < 15000)
+        {
+            connected = 0;
+            foreach (var c in _stressClients) { c.Update(0.016); if (c.GetSocketState() == SOCKET_PEER_STATE.CONNECTED) connected++; }
+            await Task.Delay(16);
+        }
+        connectSw.Stop();
+        AppendLog("#log", $"连接完成: {connected}/{clientCount} 已连接, 耗时 {connectSw.ElapsedMilliseconds}ms");
+        if (connected < clientCount) AppendLog("#log", "警告: 部分连接未成功，压测指标仅供参考");
+
+        // 3) 突发发送全部包并计时
+        long sent = 0;
+        var sendSw = Stopwatch.StartNew();
+        foreach (var c in _stressClients)
+        {
+            if (c.GetSocketState() != SOCKET_PEER_STATE.CONNECTED) continue;
+            for (int k = 0; k < perClient; k++)
+            {
+                c.SendNetData(1000, body);
+                sent++;
+            }
+            c.Update(0.016);
+        }
+        for (int f = 0; f < 3; f++) { foreach (var c in _stressClients) c.Update(0.016); await Task.Delay(16); }
+        sendSw.Stop();
+        double sendSec = Math.Max(1, sendSw.ElapsedMilliseconds) / 1000.0;
+        AppendLog("#log", $"发送完成: {sent} 包, 耗时 {sendSw.ElapsedMilliseconds}ms, 吞吐 {(sent / sendSec):F0} 包/s ({(sent * body.Length / sendSec / 1024.0):F1} KB/s)");
+
+        // 4) 等待服务端回显（echo）全部到达
+        var recvSw = Stopwatch.StartNew();
+        while (_stressRecv < sent && recvSw.ElapsedMilliseconds < 30000)
+        {
+            foreach (var c in _stressClients) c.Update(0.016);
+            await Task.Delay(16);
+        }
+        recvSw.Stop();
+        AppendLog("#log", $"回显完成: 收到 {_stressRecv}/{sent} 包, 耗时 {recvSw.ElapsedMilliseconds}ms, 往返吞吐 {(_stressRecv / Math.Max(1, recvSw.ElapsedMilliseconds) * 1000.0):F0} 包/s");
+        AppendLog("#log", $"高并发压测结束: 连接 {connected}, 发送 {sent} 包, 接收 {_stressRecv} 包");
+    }
+
+    [JSExport]
+    internal static void StopStress()
+    {
+        foreach (var c in _stressClients) { try { c.DisConnectServer(); } catch { } try { c.Dispose(); } catch { } }
+        _stressClients.Clear();
+        _stressRecv = 0;
+    }
+
     internal static void Tick()
     {
         if (_client != null)
         {
             _client.Update(0.016);
         }
+        for (int i = 0; i < _stressClients.Count; i++) _stressClients[i].Update(0.016);
 
         double now = _sw.Elapsed.TotalSeconds;
         double dt = now - _lastTime;
