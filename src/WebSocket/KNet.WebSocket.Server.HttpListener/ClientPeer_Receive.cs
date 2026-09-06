@@ -15,12 +15,14 @@ namespace KNet.WebSocket.Server
 
         private void NetPackageExecute()
         {
+            int nPackageCount = 0;
             while (true)
             {
                 bool bSuccess;
                 lock (mReceiveStreamList) { bSuccess = mCryptoMgr.Decode(mReceiveStreamList, mNetPackage); }
                 if (!bSuccess) break;
 
+                nPackageCount++;
                 if (CommonTcpLayerNetCommand.orInnerCommand(mNetPackage.nPackageId))
                 {
                     // 心跳等内部命令：回包保活，不派发给业务层
@@ -31,6 +33,8 @@ namespace KNet.WebSocket.Server
                     mServerMgr.Dispatch(this, mNetPackage);
                 }
             }
+            // 收到任意包即视为对端存活，重置接收心跳超时计时
+            if (nPackageCount > 0) ReceiveHeartBeat();
         }
     }
 }

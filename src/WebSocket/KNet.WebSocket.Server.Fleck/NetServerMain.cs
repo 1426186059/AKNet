@@ -5,99 +5,56 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 using Fleck;
 
 namespace KNet.WebSocket.Server
 {
-    public class NetServerMain : NetServerInterface
+    public partial class NetServerMain : NetServerInterface
     {
+        // 复用 KNet.Common 的通用管理器（与 TcpListener 一致）
+        internal readonly ListenClientPeerStateMgr mListenClientPeerStateMgr = new ListenClientPeerStateMgr();
+        internal readonly ListenNetPackageMgr mPackageManager = new ListenNetPackageMgr();
+
+        // ClientPeer 管理器：登记活跃连接，超时/断开时移除
+        private readonly List<ClientPeer> mClientList = new List<ClientPeer>();
+        private readonly object mClientListLock = new object();
+        private Timer mUpdateTimer = null;
+
         private int mPort;
         private SOCKET_SERVER_STATE mState = SOCKET_SERVER_STATE.NONE;
         private WebSocketServer mServer = null;
 
         public int GetPort() => mPort;
         public SOCKET_SERVER_STATE GetServerState() => mState;
+        public int GetClientCount() { lock (mClientListLock) return mClientList.Count; }
 
-        private readonly Dictionary<ushort, Action<ClientPeerBase, NetPackage>> mNetEventDic = new Dictionary<ushort, Action<ClientPeerBase, NetPackage>>();
-        private Action<ClientPeerBase, NetPackage> mCommonListenFunc = null;
-        private Action<ClientPeerBase, SOCKET_PEER_STATE> mStateFunc1 = null;
-        private Action<ClientPeerBase> mStateFunc2 = null;
+        // 包监听：委托给 mPackageManager
+        public void addNetListenFunc(ushort id, Action<ClientPeerBase, NetPackage> func) { mPackageManager.addNetListenFunc(id, func); }
+        public void removeNetListenFunc(ushort id, Action<ClientPeerBase, NetPackage> func) { mPackageManager.removeNetListenFunc(id, func); }
+        public void addNetListenFunc(Action<ClientPeerBase, NetPackage> func) { mPackageManager.addNetListenFunc(func); }
+        public void removeNetListenFunc(Action<ClientPeerBase, NetPackage> func) { mPackageManager.removeNetListenFunc(func); }
 
-        public void addNetListenFunc(Action<ClientPeerBase, NetPackage> func) { mCommonListenFunc += func; }
-        public void removeNetListenFunc(Action<ClientPeerBase, NetPackage> func) { mCommonListenFunc -= func; }
-        public void addNetListenFunc(ushort id, Action<ClientPeerBase, NetPackage> func)
-        {
-            if (!mNetEventDic.ContainsKey(id)) mNetEventDic[id] = func; else mNetEventDic[id] += func;
-        }
-        public void removeNetListenFunc(ushort id, Action<ClientPeerBase, NetPackage> func) { if (mNetEventDic.ContainsKey(id)) mNetEventDic[id] -= func; }
-        public void addListenClientPeerStateFunc(Action<ClientPeerBase, SOCKET_PEER_STATE> func) { mStateFunc1 += func; }
-        public void removeListenClientPeerStateFunc(Action<ClientPeerBase, SOCKET_PEER_STATE> func) { mStateFunc1 -= func; }
-        public void addListenClientPeerStateFunc(Action<ClientPeerBase> func) { mStateFunc2 += func; }
-        public void removeListenClientPeerStateFunc(Action<ClientPeerBase> func) { mStateFunc2 -= func; }
+        // 状态监听：委托给 mListenClientPeerStateMgr
+        public void addListenClientPeerStateFunc(Action<ClientPeerBase> func) { mListenClientPeerStateMgr.addListenClientPeerStateFunc(func); }
+        public void removeListenClientPeerStateFunc(Action<ClientPeerBase> func) { mListenClientPeerStateMgr.removeListenClientPeerStateFunc(func); }
+        public void addListenClientPeerStateFunc(Action<ClientPeerBase, SOCKET_PEER_STATE> func) { mListenClientPeerStateMgr.addListenClientPeerStateFunc(func); }
+        public void removeListenClientPeerStateFunc(Action<ClientPeerBase, SOCKET_PEER_STATE> func) { mListenClientPeerStateMgr.removeListenClientPeerStateFunc(func); }
 
-        public void InitNet() { InitNet(GetFreePort()); }
-        public void InitNet(int nPort) { InitNet(IPAddress.Any.ToString(), nPort); }
-        public void InitNet(string Ip, int nPort)
-        {
-            mPort = nPort;
-            mState = SOCKET_SERVER_STATE.NORMAL;
-            mServer = new WebSocketServer($"ws://0.0.0.0:{nPort}");
-            mServer.Start(socket =>
-            {
-                var peer = new ClientPeer(socket, this);
-                socket.OnOpen = () =>
-                {
-                    peer.SetEndPoint(new IPEndPoint(IPAddress.Parse(socket.ConnectionInfo.ClientIpAddress), socket.ConnectionInfo.ClientPort));
-                    OnClientConnected(peer);
-                };
-                socket.OnClose = () => OnClientDisconnected(peer);
-                // KNet 使用二进制帧承载协议包；文本帧不解析为协议包
-                socket.OnBinary = bytes => peer.OnBinaryReceived(bytes);
-                socket.OnMessage = _ => { };
-            });
-            NetLog.Log($"[Fleck] WebSocket 服务器 初始化成功: 0.0.0.0:{nPort}");
-        }
+        public void OnSocketStateChanged(ClientPeerBase peer) { mListenClientPeerStateMgr.OnSocketStateChanged(peer); }
 
-        public void Update(double elapsed) { }
+        // 入参已是按 KNet 协议解码后的包
+        public void Dispatch(ClientPeerBase peer, NetPackage pkg) { mPackageManager.NetPackageExecute(peer, pkg); }
+
         public void Update() { Update(0.016); }
 
         public void Dispose()
         {
             mState = SOCKET_SERVER_STATE.NONE;
+            try { mUpdateTimer?.Dispose(); } catch { }
+            mUpdateTimer = null;
             try { mServer?.Dispose(); } catch { }
             mServer = null;
-        }
-
-        public void OnClientConnected(ClientPeer peer)
-        {
-            peer.SetSocketState(SOCKET_PEER_STATE.CONNECTED);
-            mStateFunc2?.Invoke(peer);
-            mStateFunc1?.Invoke(peer, SOCKET_PEER_STATE.CONNECTED);
-            NetLog.Log($"[Fleck] 客户端连接: {peer.GetIPEndPoint()}");
-        }
-
-        public void OnClientDisconnected(ClientPeer peer)
-        {
-            peer.SetSocketState(SOCKET_PEER_STATE.DISCONNECTED);
-            mStateFunc2?.Invoke(peer);
-            mStateFunc1?.Invoke(peer, SOCKET_PEER_STATE.DISCONNECTED);
-            NetLog.Log($"[Fleck] 客户端断开: {peer.GetIPEndPoint()}");
-        }
-
-        // 入参已是按 KNet 协议解码后的包
-        public void Dispatch(ClientPeerBase peer, NetPackage pkg)
-        {
-            if (mCommonListenFunc != null) mCommonListenFunc(peer, pkg);
-            else if (mNetEventDic.TryGetValue(pkg.GetPackageId(), out var func) && func != null) func(peer, pkg);
-        }
-
-        private static int GetFreePort()
-        {
-            var l = new TcpListener(IPAddress.Loopback, 0);
-            l.Start();
-            int p = ((IPEndPoint)l.LocalEndpoint).Port;
-            l.Stop();
-            return p;
         }
     }
 }

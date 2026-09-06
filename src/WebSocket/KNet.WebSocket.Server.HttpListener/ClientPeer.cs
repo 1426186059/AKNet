@@ -1,4 +1,4 @@
-// 客户端连接封装（分部类之一：基础状态、属性、生命周期）。
+// 客户端连接封装（分部类之一：基础状态、属性、生命周期、心跳）。
 using KNet.Common;
 using System;
 using System.Net;
@@ -20,6 +20,11 @@ namespace KNet.WebSocket.Server
         private readonly CryptoMgr mCryptoMgr = new CryptoMgr();
         private readonly NetStreamCircularBuffer mReceiveStreamList = new NetStreamCircularBuffer();
         private readonly NetStreamReceivePackage mNetPackage = new NetStreamReceivePackage();
+        private readonly object mCryptoLock = new object();
+
+        // 心跳计时
+        private double fSendHeartBeatTime = 0.0;
+        private double fReceiveHeartBeatTime = 0.0;
 
         public ClientPeer(System.Net.WebSockets.WebSocket ws, IPEndPoint ep, NetServerMain serverMgr)
         {
@@ -40,5 +45,26 @@ namespace KNet.WebSocket.Server
         public object GetOwner() => mOwner;
 
         public void Dispose() { try { mWs.Dispose(); } catch { } }
+
+        // 由 NetServerMain.Update 驱动：发送心跳 + 检测接收心跳超时（超时则置 DISCONNECTED，交由管理器移除）
+        public void Update(double elapsed)
+        {
+            if (mSocketPeerState != SOCKET_PEER_STATE.CONNECTED) return;
+
+            fSendHeartBeatTime += elapsed;
+            if (fSendHeartBeatTime >= CommonTcpLayerConfig.fSendHeartBeatMaxTime)
+            {
+                SendNetData(CommonTcpLayerNetCommand.COMMAND_HEARTBEAT);
+                fSendHeartBeatTime = 0.0;
+            }
+
+            fReceiveHeartBeatTime += Math.Min(0.3, elapsed);
+            if (fReceiveHeartBeatTime >= CommonTcpLayerConfig.fReceiveHeartBeatTimeOut)
+            {
+                SetSocketState(SOCKET_PEER_STATE.DISCONNECTED);
+            }
+        }
+
+        private void ReceiveHeartBeat() { fReceiveHeartBeatTime = 0.0; }
     }
 }

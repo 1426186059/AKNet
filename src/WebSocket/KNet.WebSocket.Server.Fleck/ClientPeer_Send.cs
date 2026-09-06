@@ -6,47 +6,21 @@ namespace KNet.WebSocket.Server
 {
     public partial class ClientPeer
     {
-        public void SendNetData(ushort nPackageId)
-        {
-            if (GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
-                SendNetStream(mCryptoMgr.Encode(nPackageId, ReadOnlySpan<byte>.Empty));
-        }
+        public void SendNetData(ushort nPackageId) { EncodeAndSend(nPackageId, ReadOnlySpan<byte>.Empty); }
+        public void SendNetData(ushort nPackageId, byte[] data) { EncodeAndSend(nPackageId, data); }
+        public void SendNetData(ushort nPackageId, ReadOnlySpan<byte> buffer) { EncodeAndSend(nPackageId, buffer); }
+        public void SendNetData(NetPackage mNetPackage) { EncodeAndSend(mNetPackage.GetPackageId(), mNetPackage.GetData()); }
+        public void SendNetData(byte[] data) { EncodeAndSend(0, data); }
+        public void SendNetData(ReadOnlySpan<byte> data) { EncodeAndSend(0, data); }
 
-        public void SendNetData(ushort nPackageId, byte[] data)
+        // 编码结果指向 CryptoMgr 内部缓冲，须在锁内拷贝为独立数组；
+        // 锁避免定时器心跳发送与接收回显在同一连接上并发改写同一编码缓冲
+        private void EncodeAndSend(ushort nPackageId, ReadOnlySpan<byte> body)
         {
-            if (GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
-                SendNetStream(mCryptoMgr.Encode(nPackageId, data));
-        }
-
-        public void SendNetData(ushort nPackageId, ReadOnlySpan<byte> buffer)
-        {
-            if (GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
-                SendNetStream(mCryptoMgr.Encode(nPackageId, buffer));
-        }
-
-        public void SendNetData(NetPackage mNetPackage)
-        {
-            if (GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
-                SendNetStream(mCryptoMgr.Encode(mNetPackage.GetPackageId(), mNetPackage.GetData()));
-        }
-
-        public void SendNetData(byte[] data)
-        {
-            if (GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
-                SendNetStream(mCryptoMgr.Encode(0, data));
-        }
-
-        public void SendNetData(ReadOnlySpan<byte> data)
-        {
-            if (GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
-                SendNetStream(mCryptoMgr.Encode(0, data));
-        }
-
-        // 编码结果指向 CryptoMgr 内部缓冲，须立即拷贝为独立数组再发送
-        private void SendNetStream(ReadOnlySpan<byte> mBufferSegment)
-        {
-            if (mSocketPeerState != SOCKET_PEER_STATE.CONNECTED) return;
-            try { mSocket.Send(mBufferSegment.ToArray()); }
+            if (GetSocketState() != SOCKET_PEER_STATE.CONNECTED) return;
+            byte[] buf;
+            lock (mCryptoLock) { buf = mCryptoMgr.Encode(nPackageId, body).ToArray(); }
+            try { mSocket.Send(buf); }
             catch { }
         }
     }
