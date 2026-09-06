@@ -2,8 +2,10 @@
 
   <PropertyGroup>
 	<TargetFrameworks>netstandard2.1;net10.0</TargetFrameworks>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
+	<ImplicitUsings>enable</ImplicitUsings>
+	<!-- netstandard2.1 默认 LangVersion=8.0，撑不起 ImplicitUsings/GlobalUsings(C# 10)，整体抬到 latest -->
+	<LangVersion>latest</LangVersion>
+	<Nullable>enable</Nullable>
     <!-- 与 TcpListener 保持一致：AssemblyName=KNet.WebSocket.Server，以便通过 KNet.Common 的 InternalsVisibleTo 访问内部编解码类 -->
     <AssemblyName>KNet.WebSocket.Server</AssemblyName>
     <RootNamespace>KNet.WebSocket.Server</RootNamespace>
