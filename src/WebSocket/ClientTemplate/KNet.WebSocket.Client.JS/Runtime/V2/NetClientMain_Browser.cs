@@ -104,7 +104,7 @@ namespace KNet.WebSocket.Client
             return true;
         }
 
-        private void SendNetStream(ReadOnlySpan<byte> mBufferSegment)
+        private unsafe void SendNetStream(ReadOnlySpan<byte> mBufferSegment)
         {
             ResetSendHeartBeatTime();
 
@@ -114,9 +114,15 @@ namespace KNet.WebSocket.Client
             byte[] slice = new byte[mBufferSegment.Length];
             mBufferSegment.CopyTo(slice);
 
-            int result = mZeroCopySend
-                ? WsSendPointer(mInstanceId, slice.AsSpan())   // 零拷贝：byte[] → Span<byte> 视图（指针+长度），不拷贝
-                : WsSend(mInstanceId, slice, 0, slice.Length); // 拷贝：子区间发送（offset=0, length=全长）
+            int result;
+            if (mZeroCopySend)
+            {
+                result = WsSendPointer(mInstanceId, slice.AsSpan());   // 零拷贝：byte[] → Span<byte> 视图（指针+长度），不拷贝
+            }
+            else
+            {
+                result = WsSend(mInstanceId, slice, 0, slice.Length); // 拷贝：子区间发送（offset=0, length=全长）
+            }
             if (result == 0)
             {
                 NetLog.LogWarning("WebSocket(V2) 发送失败，连接可能已断开");

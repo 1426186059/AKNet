@@ -246,6 +246,11 @@ namespace KNet.WebSocket.Client
             int r = mZeroCopySend
                 ? NetSendView(mInstanceId, nPackageId, data.AsSpan())   // 零拷贝：byte[] → Span<byte> 视图
                 : NetSend(mInstanceId, nPackageId, data);
+            }
+            else
+            {
+                r = NetSend(mInstanceId, nPackageId, data);
+            }
             if (r == 0) NetLog.LogWarning("WebSocket(V1) 发送失败，连接可能已断开");
         }
 
