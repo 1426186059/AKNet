@@ -166,11 +166,17 @@ export const netClose = (id) => {
     delete instances[id];
 };
 
-export const netSend = (id, packageId, data) => {
+// 发送子区间：data 为 C# 默认 marshalling 拷贝过来的 Uint8Array（可能基于更大的底层数组），
+// 用 subarray 取出 [index, index+length) 这一段再编码成帧发送，避免把整段底层数组一并发出去。
+// 对应 C# [JSImport] NetSend(instanceId, packageId, data, nOffset, nLength)。
+export const netSend = (id, packageId, data, index = 0, length = data ? data.length : 0) => {
     const inst = instances[id];
     if (inst && inst.ws && inst.ws.readyState === WebSocket.OPEN) {
         try {
-            inst.ws.send(encodeFrame(packageId, data));
+            const body = (data && length > 0)
+                ? data.subarray(index, index + length)
+                : null;
+            inst.ws.send(encodeFrame(packageId, body));
             stats.sendOk++;
             return 1;
         } catch (e) {

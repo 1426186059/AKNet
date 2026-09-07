@@ -20,13 +20,16 @@ setModuleImports('main.js', {
             if (el) { const p = document.createElement('div'); p.textContent = text; el.appendChild(p); el.scrollTop = el.scrollHeight; }
         }
     },
-    // V2
+    
     knet: {
+
+        // V2
         wsConnect: knetWs.wsConnect,
         wsClose: knetWs.wsClose,
         wsSend: knetWs.wsSend,
         wsGetState: knetWs.wsGetState,
         wsReceive: knetWs.wsReceive,
+
         // V1
         netConnect: knetNet.netConnect,
         netClose: knetNet.netClose,
