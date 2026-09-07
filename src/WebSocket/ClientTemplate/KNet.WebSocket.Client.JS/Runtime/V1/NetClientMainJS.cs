@@ -240,12 +240,13 @@ namespace KNet.WebSocket.Client
             else NetLog.LogError("SendNetData Failed: " + GetSocketState());
         }
 
-        // 发送核心：按 mZeroCopySend 选择「MemoryView 指针零拷贝」或「byte[] 默认拷贝」路径。
-        private void SendCore(ushort nPackageId, byte[] data)
+        // 发送核心：按发送策略选择「MemoryView 指针零拷贝 / byte[] 默认拷贝」路径。
+        private unsafe void SendCore(ushort nPackageId, byte[] data)
         {
-            int r = mZeroCopySend
-                ? NetSendView(mInstanceId, nPackageId, data.AsSpan())   // 零拷贝：byte[] → Span<byte> 视图
-                : NetSend(mInstanceId, nPackageId, data);
+            int r;
+            if (mZeroCopySend)
+            {
+                r = NetSendView(mInstanceId, nPackageId, data.AsSpan());   // 零拷贝：byte[] → Span<byte> 视图
             }
             else
             {
