@@ -56,7 +56,7 @@ namespace KNet.WebSocket.Client
         #endregion
 
         private readonly JSListenNetPackageMgr mPackageManager;
-        private readonly ListenClientPeerStateMgr mListenClientPeerStateMgr;
+        private readonly JSListenClientPeerStateMgr mListenClientPeerStateMgr;
         private readonly ConfigInstance mConfigInstance;
         private readonly NetStreamReceivePackage mNetPackage = new NetStreamReceivePackage();
 
@@ -76,7 +76,7 @@ namespace KNet.WebSocket.Client
             mConfigInstance = mConfig ?? new ConfigInstance();
             mZeroCopySend = zeroCopySend;
             mPackageManager = new JSListenNetPackageMgr();
-            mListenClientPeerStateMgr = new ListenClientPeerStateMgr();
+            mListenClientPeerStateMgr = new JSListenClientPeerStateMgr();
             mSocketPeerState = mLastSocketPeerState = SOCKET_PEER_STATE.DISCONNECTED;
         }
 
@@ -158,7 +158,7 @@ namespace KNet.WebSocket.Client
                     mNetPackage.SetData(new Memory<byte>(body));
 
                     if (CommonTcpLayerNetCommand.orInnerCommand(packageId)) { }
-                    else mPackageManager.NetPackageExecute(mNetPackage);
+                    else mPackageManager.NetPackageExecute(this, mNetPackage);
                 }
             }
 
@@ -218,7 +218,7 @@ namespace KNet.WebSocket.Client
         public void SendNetData(ushort nPackageId)
         {
             if (GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
-                NetSend(mInstanceId, nPackageId, Array.Empty<byte>());
+                NetSend(mInstanceId, nPackageId, null, 0, 0);
             else NetLog.LogError("SendNetData Failed: " + GetSocketState());
         }
 
@@ -264,22 +264,22 @@ namespace KNet.WebSocket.Client
 
         #region Listeners & State
 
-        public void addNetListenFunc(ushort nPackageId, Action<ClientPeerBase, NetPackage> fun)
+        public void addNetListenFunc(ushort nPackageId, Action<JSClientPeerBase, NetPackage> fun)
         { mPackageManager.addNetListenFunc(nPackageId, fun); }
-        public void removeNetListenFunc(ushort nPackageId, Action<ClientPeerBase, NetPackage> fun)
+        public void removeNetListenFunc(ushort nPackageId, Action<JSClientPeerBase, NetPackage> fun)
         { mPackageManager.removeNetListenFunc(nPackageId, fun); }
-        public void addNetListenFunc(Action<ClientPeerBase, NetPackage> func)
+        public void addNetListenFunc(Action<JSClientPeerBase, NetPackage> func)
         { mPackageManager.addNetListenFunc(func); }
-        public void removeNetListenFunc(Action<ClientPeerBase, NetPackage> func)
+        public void removeNetListenFunc(Action<JSClientPeerBase, NetPackage> func)
         { mPackageManager.removeNetListenFunc(func); }
 
-        public void addListenClientPeerStateFunc(Action<ClientPeerBase, SOCKET_PEER_STATE> mFunc)
+        public void addListenClientPeerStateFunc(Action<JSClientPeerBase, SOCKET_PEER_STATE> mFunc)
         { mListenClientPeerStateMgr.addListenClientPeerStateFunc(mFunc); }
-        public void removeListenClientPeerStateFunc(Action<ClientPeerBase, SOCKET_PEER_STATE> mFunc)
+        public void removeListenClientPeerStateFunc(Action<JSClientPeerBase, SOCKET_PEER_STATE> mFunc)
         { mListenClientPeerStateMgr.removeListenClientPeerStateFunc(mFunc); }
-        public void addListenClientPeerStateFunc(Action<ClientPeerBase> mFunc)
+        public void addListenClientPeerStateFunc(Action<JSClientPeerBase> mFunc)
         { mListenClientPeerStateMgr.addListenClientPeerStateFunc(mFunc); }
-        public void removeListenClientPeerStateFunc(Action<ClientPeerBase> mFunc)
+        public void removeListenClientPeerStateFunc(Action<JSClientPeerBase> mFunc)
         { mListenClientPeerStateMgr.removeListenClientPeerStateFunc(mFunc); }
 
         public IPEndPoint GetIPEndPoint() => null;
