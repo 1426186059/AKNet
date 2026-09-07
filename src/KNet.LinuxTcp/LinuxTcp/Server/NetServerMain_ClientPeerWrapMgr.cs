@@ -27,18 +27,24 @@ namespace KNet.LinuxTcp.Server
 
             }
 
-            for (int i = mClientList.Count - 1; i >= 0; i--)
+            for (int i = 0; i < mClientList.Count;)
             {
                 ClientPeerWrap mClientPeer = mClientList[i];
                 if (mClientPeer.GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
                 {
                     mClientPeer.Update(elapsed);
+                    ++i;
                 }
                 else
                 {
-                    mClientList.RemoveAt(i);
-                    PrintRemoveClientMsg(mClientPeer);
-                    mClientPeer.Reset();
+                    var mRemove = mClientPeer;
+
+                    int nLastIndex = mClientList.Count - 1;
+                    mClientList[i] = mClientList[nLastIndex];
+                    mClientList.RemoveAt(nLastIndex);
+
+                    PrintRemoveClientMsg(mRemove);
+                    mRemove.Reset();
                 }
             }
         }
