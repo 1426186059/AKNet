@@ -23,11 +23,12 @@ namespace KNet.WebSocket.Client
     /// WebSocket 轮询模型移植自 Web_Mir3（JSBind/BrowserWebSocket.cs + jsengine/core/websocket.js）：
     /// JS 把二进制帧入队，C# 每帧 BrowserServicePoll 取出写入接收环形缓冲。
     /// </summary>
-    public partial class NetClientMain
+    public partial class NetClientMain:JSNetClientInterface
     {
         private readonly JsXorCodec mJsCodec;
-        private readonly ListenNetPackageMgr mPackageManager = null;
-        private readonly ListenClientPeerStateMgr mListenClientPeerStateMgr = null;
+        private readonly JSListenNetPackageMgr mPackageManager = null;
+        private readonly JSListenClientPeerStateMgr mListenClientPeerStateMgr = null;
+        
 
         private double fReConnectServerCdTime = 0.0;
         private double fSendHeartBeatTime = 0.0;
@@ -58,8 +59,8 @@ namespace KNet.WebSocket.Client
             this.mZeroCopySend = zeroCopySend;
 
             mJsCodec = new JsXorCodec();
-            mPackageManager = new ListenNetPackageMgr();
-            mListenClientPeerStateMgr = new ListenClientPeerStateMgr();
+            mPackageManager = new JSListenNetPackageMgr();
+            mListenClientPeerStateMgr = new JSListenClientPeerStateMgr();
 
             mSocketPeerState = mLastSocketPeerState = SOCKET_PEER_STATE.DISCONNECTED;
         }
@@ -182,21 +183,21 @@ namespace KNet.WebSocket.Client
             return null; // 浏览器端无 IPEndPoint 概念
         }
 
-        public void addNetListenFunc(ushort nPackageId, Action<ClientPeerBase, NetPackage> fun)
+        public void addNetListenFunc(ushort nPackageId, Action<JSClientPeerBase, NetPackage> fun)
         { mPackageManager.addNetListenFunc(nPackageId, fun); }
-        public void removeNetListenFunc(ushort nPackageId, Action<ClientPeerBase, NetPackage> fun)
+        public void removeNetListenFunc(ushort nPackageId, Action<JSClientPeerBase, NetPackage> fun)
         { mPackageManager.removeNetListenFunc(nPackageId, fun); }
-        public void addNetListenFunc(Action<ClientPeerBase, NetPackage> func)
+        public void addNetListenFunc(Action<JSClientPeerBase, NetPackage> func)
         { mPackageManager.addNetListenFunc(func); }
-        public void removeNetListenFunc(Action<ClientPeerBase, NetPackage> func)
+        public void removeNetListenFunc(Action<JSClientPeerBase, NetPackage> func)
         { mPackageManager.removeNetListenFunc(func); }
-        public void addListenClientPeerStateFunc(Action<ClientPeerBase, SOCKET_PEER_STATE> mFunc)
+        public void addListenClientPeerStateFunc(Action<JSClientPeerBase, SOCKET_PEER_STATE> mFunc)
         { mListenClientPeerStateMgr.addListenClientPeerStateFunc(mFunc); }
-        public void removeListenClientPeerStateFunc(Action<ClientPeerBase, SOCKET_PEER_STATE> mFunc)
+        public void removeListenClientPeerStateFunc(Action<JSClientPeerBase, SOCKET_PEER_STATE> mFunc)
         { mListenClientPeerStateMgr.removeListenClientPeerStateFunc(mFunc); }
-        public void addListenClientPeerStateFunc(Action<ClientPeerBase> mFunc)
+        public void addListenClientPeerStateFunc(Action<JSClientPeerBase> mFunc)
         { mListenClientPeerStateMgr.addListenClientPeerStateFunc(mFunc); }
-        public void removeListenClientPeerStateFunc(Action<ClientPeerBase> mFunc)
+        public void removeListenClientPeerStateFunc(Action<JSClientPeerBase> mFunc)
         { mListenClientPeerStateMgr.removeListenClientPeerStateFunc(mFunc); }
 
         public void SetName(string name) { this.mName = name; }
@@ -205,5 +206,39 @@ namespace KNet.WebSocket.Client
         public uint GetID() { return this.mID; }
         public void SetOwner(object owner) { this.mOwner = owner; }
         public object GetOwner() { return this.mOwner; }
+
+        // 兼容 JSNetClientInterface.SendNetData(ArraySegment<byte>)
+        public void SendNetData(ArraySegment<byte> data)
+        {
+            SendNetStream(data);
+        }
+
+        // 兼容 JSNetClientInterface.SendNetData(ushort, ArraySegment<byte>)
+        public void SendNetData(ushort nPackageId, ArraySegment<byte> data)
+        {
+            ReadOnlySpan<byte> span = (data.Array != null) ? new ReadOnlySpan<byte>(data.Array, data.Offset, data.Count) : ReadOnlySpan<byte>.Empty;
+            var encoded = mJsCodec.Encode(nPackageId, span);
+            SendNetStream(encoded);
+        }
+
+        // 兼容 ClientPeerBase.SendNetData(ushort, ReadOnlySpan<byte>)
+        public void SendNetData(ushort nPackageId, ReadOnlySpan<byte> buffer)
+        {
+            var encoded = mJsCodec.Encode(nPackageId, buffer);
+            SendNetStream(encoded);
+        }
+
+        // 兼容 ClientPeerBase.SendNetData(ReadOnlySpan<byte>)
+        public void SendNetData(ReadOnlySpan<byte> data)
+        {
+            if (data.IsEmpty)
+            {
+                SendNetData(Array.Empty<byte>());
+                return;
+            }
+            var arr = new byte[data.Length];
+            data.CopyTo(arr);
+            SendNetData(arr);
+        }
     }
 }

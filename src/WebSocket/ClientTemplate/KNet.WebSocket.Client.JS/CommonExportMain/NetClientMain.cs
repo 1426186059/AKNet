@@ -10,7 +10,7 @@
 ************************************Copyright*****************************************/
 namespace KNet.Common
 {
-    public class NetClientMain : NetClientMainBase
+    public class NetClientMain : JSNetClientMainBase
     {
         public NetClientMain(NetType nNetType, ConfigInstance mConfigInstance = null)
         {

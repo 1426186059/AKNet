@@ -14,33 +14,33 @@ using System.Runtime.CompilerServices;
 
 namespace KNet.Common
 {
-    public class JSNetClientMainBase : ClientPeerBase, NetClientInterface
+    public class JSNetClientMainBase : JSNetClientInterface
     {
-        protected NetClientInterface mInterface = null;
-        public NetClientInterface GetInstance()
+        protected JSNetClientInterface mInterface = null;
+        public JSNetClientInterface GetInstance()
         {
             return mInterface;
         }
 
-        public void SetInstance(NetClientInterface mInterface)
+        public void SetInstance(JSNetClientInterface mInterface)
         {
             this.mInterface = mInterface;
         }
 
-        public void addListenClientPeerStateFunc(Action<ClientPeerBase, SOCKET_PEER_STATE> mFunc) { mInterface.addListenClientPeerStateFunc(mFunc); }
-        public void addListenClientPeerStateFunc(Action<ClientPeerBase> mFunc) { mInterface.addListenClientPeerStateFunc(mFunc); }
-        public void addNetListenFunc(ushort nPackageId, Action<ClientPeerBase, NetPackage> mFunc) { mInterface.addNetListenFunc(nPackageId, mFunc); }
-        public void addNetListenFunc(Action<ClientPeerBase, NetPackage> mFunc) { mInterface.addNetListenFunc(mFunc); }
+        public void addListenClientPeerStateFunc(Action<JSClientPeerBase, SOCKET_PEER_STATE> mFunc) { mInterface.addListenClientPeerStateFunc(mFunc); }
+        public void addListenClientPeerStateFunc(Action<JSClientPeerBase> mFunc) { mInterface.addListenClientPeerStateFunc(mFunc); }
+        public void addNetListenFunc(ushort nPackageId, Action<JSClientPeerBase, NetPackage> mFunc) { mInterface.addNetListenFunc(nPackageId, mFunc); }
+        public void addNetListenFunc(Action<JSClientPeerBase, NetPackage> mFunc) { mInterface.addNetListenFunc(mFunc); }
         public void ConnectServer(string Ip, int nPort) { mInterface.ConnectServer(Ip, nPort); }
         public bool DisConnectServer() { return mInterface.DisConnectServer(); }
         public IPEndPoint GetIPEndPoint() { return mInterface.GetIPEndPoint(); }
         public SOCKET_PEER_STATE GetSocketState() { return mInterface.GetSocketState(); }
         public void ReConnectServer() { mInterface.ReConnectServer(); }
         public void Dispose() { mInterface.Dispose(); }
-        public void removeListenClientPeerStateFunc(Action<ClientPeerBase, SOCKET_PEER_STATE> mFunc) { mInterface.removeListenClientPeerStateFunc(mFunc); }
-        public void removeListenClientPeerStateFunc(Action<ClientPeerBase> mFunc) { mInterface.removeListenClientPeerStateFunc(mFunc); }
-        public void removeNetListenFunc(ushort nPackageId, Action<ClientPeerBase, NetPackage> mFunc) { mInterface.removeNetListenFunc(nPackageId, mFunc); }
-        public void removeNetListenFunc(Action<ClientPeerBase, NetPackage> mFunc) { mInterface.removeNetListenFunc(mFunc); }
+        public void removeListenClientPeerStateFunc(Action<JSClientPeerBase, SOCKET_PEER_STATE> mFunc) { mInterface.removeListenClientPeerStateFunc(mFunc); }
+        public void removeListenClientPeerStateFunc(Action<JSClientPeerBase> mFunc) { mInterface.removeListenClientPeerStateFunc(mFunc); }
+        public void removeNetListenFunc(ushort nPackageId, Action<JSClientPeerBase, NetPackage> mFunc) { mInterface.removeNetListenFunc(nPackageId, mFunc); }
+        public void removeNetListenFunc(Action<JSClientPeerBase, NetPackage> mFunc) { mInterface.removeNetListenFunc(mFunc); }
 
         public void SendNetData(ushort nPackageId) { mInterface.SendNetData(nPackageId); }
         public void SendNetData(ushort nPackageId, byte[] data) { mInterface.SendNetData(nPackageId, data); }

@@ -1,0 +1,52 @@
+﻿/************************************Copyright*****************************************
+ *  Project    : KNet
+ *  Web        : https://github.com/1426186059/KNet
+ *  Description: C# 游戏网络库
+ *  Author     : 许珂
+ *  Since      : 2024/11/01 00:00:00
+ *  Updated    : 2026/07/28 00:39:11
+ *  Copyright  : 作者保留一切版权权利, 商业用途需支付版权费用
+ *  Contact    : 微信：AAA-2025-666-888
+************************************Copyright*****************************************/
+using System;
+using System.Runtime.CompilerServices;
+[assembly: InternalsVisibleTo("KNet")]
+[assembly: InternalsVisibleTo("KNet.MSQuic")]
+[assembly: InternalsVisibleTo("KNet.LinuxTcp")]
+[assembly: InternalsVisibleTo("KNet.WebSocket.Server")]
+[assembly: InternalsVisibleTo("KNet.WebSocket.Client")]
+namespace KNet.Common
+{
+    internal class JSListenClientPeerStateMgr
+	{
+		private event Action<JSClientPeerBase, SOCKET_PEER_STATE> mEventFunc1;
+		private event Action<JSClientPeerBase> mEventFunc2;
+
+		public void OnSocketStateChanged(JSClientPeerBase mClientPeer)
+		{
+			MainThreadCheck.Check();
+			mEventFunc2?.Invoke(mClientPeer);
+			mEventFunc1?.Invoke(mClientPeer, mClientPeer.GetSocketState());
+		}
+
+        public void addListenClientPeerStateFunc(Action<JSClientPeerBase, SOCKET_PEER_STATE> func)
+		{
+			mEventFunc1 += func;
+		}
+
+		public void removeListenClientPeerStateFunc(Action<JSClientPeerBase, SOCKET_PEER_STATE> func)
+		{
+			mEventFunc1 -= func;
+		}
+
+		public void addListenClientPeerStateFunc(Action<JSClientPeerBase> func)
+		{
+			mEventFunc2 += func;
+		}
+
+		public void removeListenClientPeerStateFunc(Action<JSClientPeerBase> func)
+		{
+			mEventFunc2 -= func;
+		}
+	}
+}

@@ -26,7 +26,7 @@ namespace KNet.WebSocket.Client
             if (bSuccess)
             {
                 if (CommonTcpLayerNetCommand.orInnerCommand(mNetPackage.nPackageId)) { }
-                else { mPackageManager.NetPackageExecute(this, mNetPackage); }
+                else { mPackageManager.NetPackageExecute(mNetPackage); }
             }
             return bSuccess;
         }

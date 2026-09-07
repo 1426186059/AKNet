@@ -21,7 +21,7 @@ namespace KNet.WebSocket.Client
     /// C# 只做 JSImport 调用：连接 / 发包 / 轮询取已解帧的包 / 状态查询。
     /// 包监听仍走 KNet.Common.ListenNetPackageMgr（与 V2 相同的回调接口）。
     /// </summary>
-    public partial class NetClientMainJS
+    public partial class NetClientMainJS: JSNetClientInterface
     {
         #region JS Interop (对应 wwwroot/jsengine/knet-net-client.js 的 knet.net*)
 
@@ -32,7 +32,7 @@ namespace KNet.WebSocket.Client
         private static partial void NetClose(int instanceId);
 
         [JSImport("knet.netSend", "main.js")]
-        private static partial int NetSend(int instanceId, int packageId, byte[] data);
+        private static partial int NetSend(int instanceId, int packageId, byte[] data, int nOffset, int nLength);
 
         [JSImport("knet.netGetState", "main.js")]
         private static partial int NetGetState(int instanceId);
@@ -55,7 +55,7 @@ namespace KNet.WebSocket.Client
 
         #endregion
 
-        private readonly ListenNetPackageMgr mPackageManager;
+        private readonly JSListenNetPackageMgr mPackageManager;
         private readonly ListenClientPeerStateMgr mListenClientPeerStateMgr;
         private readonly ConfigInstance mConfigInstance;
         private readonly NetStreamReceivePackage mNetPackage = new NetStreamReceivePackage();
@@ -75,7 +75,7 @@ namespace KNet.WebSocket.Client
         {
             mConfigInstance = mConfig ?? new ConfigInstance();
             mZeroCopySend = zeroCopySend;
-            mPackageManager = new ListenNetPackageMgr();
+            mPackageManager = new JSListenNetPackageMgr();
             mListenClientPeerStateMgr = new ListenClientPeerStateMgr();
             mSocketPeerState = mLastSocketPeerState = SOCKET_PEER_STATE.DISCONNECTED;
         }
@@ -158,7 +158,7 @@ namespace KNet.WebSocket.Client
                     mNetPackage.SetData(new Memory<byte>(body));
 
                     if (CommonTcpLayerNetCommand.orInnerCommand(packageId)) { }
-                    else mPackageManager.NetPackageExecute(this, mNetPackage);
+                    else mPackageManager.NetPackageExecute(mNetPackage);
                 }
             }
 
@@ -229,17 +229,31 @@ namespace KNet.WebSocket.Client
             else NetLog.LogError("SendNetData Failed: " + GetSocketState());
         }
 
+        public void SendNetData(ArraySegment<byte> data)
+        {
+            if (GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
+                SendCore(0, data);
+            else NetLog.LogError("SendNetData Failed: " + GetSocketState());
+        }
+
+        public void SendNetData(ushort nPackageId, ArraySegment<byte> data)
+        {
+            if (GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
+                SendCore(nPackageId, data);
+            else NetLog.LogError("SendNetData Failed: " + GetSocketState());
+        }
+
         // 发送核心：按发送策略选择「MemoryView 指针零拷贝 / byte[] 默认拷贝」路径。
-        private unsafe void SendCore(ushort nPackageId, byte[] data)
+        private unsafe void SendCore(ushort nPackageId, ArraySegment<byte> data)
         {
             int r;
             if (mZeroCopySend)
             {
-                r = NetSendView(mInstanceId, nPackageId, data.AsSpan());   // 零拷贝：byte[] → Span<byte> 视图
+                r = NetSendView(mInstanceId, nPackageId, data);   // 零拷贝：byte[] → Span<byte> 视图
             }
             else
             {
-                r = NetSend(mInstanceId, nPackageId, data);
+                r = NetSend(mInstanceId, nPackageId, data.Array, data.Offset, data.Count);
             }
             if (r == 0) NetLog.LogWarning("WebSocket(V1) 发送失败，连接可能已断开");
         }

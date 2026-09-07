@@ -29,7 +29,7 @@ internal static class Program
 /// </summary>
 internal static partial class PerfPanel
 {
-    private static NetClientInterface _client;
+    private static JSNetClientInterface _client;
     private static NetType _version = NetType.WebSocketJS_V2;
     private static readonly Stopwatch _sw = new();
 
@@ -44,7 +44,7 @@ internal static partial class PerfPanel
     private static double _lastTick = 0;
 
     // 高并发压测状态
-    private static List<NetClientInterface> _stressClients = new List<NetClientInterface>();
+    private static List<JSNetClientInterface> _stressClients = new List<JSNetClientInterface>();
     private static long _stressRecv;
     private static string _lastHost = "127.0.0.1";
     private static int _lastPort = 9000;
