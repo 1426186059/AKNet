@@ -21,7 +21,7 @@ namespace KNet.WebSocket.Client
     /// C# 只做 JSImport 调用：连接 / 发包 / 轮询取已解帧的包 / 状态查询。
     /// 包监听仍走 KNet.Common.ListenNetPackageMgr（与 V2 相同的回调接口）。
     /// </summary>
-    public partial class NetClientMainJS : NetClientInterface
+    public partial class NetClientMainJS
     {
         #region JS Interop (对应 wwwroot/jsengine/knet-net-client.js 的 knet.net*)
 
@@ -229,17 +229,6 @@ namespace KNet.WebSocket.Client
             else NetLog.LogError("SendNetData Failed: " + GetSocketState());
         }
 
-        public void SendNetData(ushort nPackageId, ReadOnlySpan<byte> buffer)
-        {
-            if (GetSocketState() == SOCKET_PEER_STATE.CONNECTED)
-            {
-                byte[] arr = new byte[buffer.Length];
-                buffer.CopyTo(arr);
-                SendCore(nPackageId, arr);
-            }
-            else NetLog.LogError("SendNetData Failed: " + GetSocketState());
-        }
-
         // 发送核心：按发送策略选择「MemoryView 指针零拷贝 / byte[] 默认拷贝」路径。
         private unsafe void SendCore(ushort nPackageId, byte[] data)
         {
@@ -255,13 +244,7 @@ namespace KNet.WebSocket.Client
             if (r == 0) NetLog.LogWarning("WebSocket(V1) 发送失败，连接可能已断开");
         }
 
-        public void SendNetData(NetPackage mNetPackage)
-        {
-            SendNetData(mNetPackage.GetPackageId(), mNetPackage.GetData());
-        }
-
         public void SendNetData(byte[] data) => SendNetData(0, data);
-        public void SendNetData(ReadOnlySpan<byte> data) => SendNetData(0, data);
 
         #endregion
 

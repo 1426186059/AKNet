@@ -23,9 +23,9 @@ namespace KNet.WebSocket.Client
     /// WebSocket 轮询模型移植自 Web_Mir3（JSBind/BrowserWebSocket.cs + jsengine/core/websocket.js）：
     /// JS 把二进制帧入队，C# 每帧 BrowserServicePoll 取出写入接收环形缓冲。
     /// </summary>
-    public partial class NetClientMain : NetClientInterface
+    public partial class NetClientMain
     {
-        private readonly CryptoMgr mCryptoMgr;
+        private readonly JsXorCodec mJsCodec;
         private readonly ListenNetPackageMgr mPackageManager = null;
         private readonly ListenClientPeerStateMgr mListenClientPeerStateMgr = null;
 
@@ -57,7 +57,7 @@ namespace KNet.WebSocket.Client
             this.mConfigInstance = mConfig ?? new ConfigInstance();
             this.mZeroCopySend = zeroCopySend;
 
-            mCryptoMgr = new CryptoMgr();
+            mJsCodec = new JsXorCodec();
             mPackageManager = new ListenNetPackageMgr();
             mListenClientPeerStateMgr = new ListenClientPeerStateMgr();
 

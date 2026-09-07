@@ -19,7 +19,7 @@ namespace KNet.WebSocket.Client
         {
             if (this.mSocketPeerState == SOCKET_PEER_STATE.CONNECTED)
             {
-                ReadOnlySpan<byte> mBufferSegment = mCryptoMgr.Encode(nPackageId, ReadOnlySpan<byte>.Empty);
+                ArraySegment<byte> mBufferSegment = mJsCodec.Encode(nPackageId, ReadOnlySpan<byte>.Empty);
                 SendNetStream(mBufferSegment);
             }
             else { NetLog.LogError("SendNetData Failed: " + GetSocketState()); }
@@ -29,7 +29,7 @@ namespace KNet.WebSocket.Client
         {
             if (this.mSocketPeerState == SOCKET_PEER_STATE.CONNECTED)
             {
-                ReadOnlySpan<byte> mBufferSegment = mCryptoMgr.Encode(nPackageId, data);
+                ArraySegment<byte> mBufferSegment = mJsCodec.Encode(nPackageId, data);
                 SendNetStream(mBufferSegment);
             }
             else { NetLog.LogError("SendNetData Failed: " + GetSocketState()); }
@@ -39,17 +39,7 @@ namespace KNet.WebSocket.Client
         {
             if (this.mSocketPeerState == SOCKET_PEER_STATE.CONNECTED)
             {
-                ReadOnlySpan<byte> mBufferSegment = mCryptoMgr.Encode(mNetPackage.GetPackageId(), mNetPackage.GetData());
-                SendNetStream(mBufferSegment);
-            }
-            else { NetLog.LogError("SendNetData Failed: " + GetSocketState()); }
-        }
-
-        public void SendNetData(ushort nPackageId, ReadOnlySpan<byte> buffer)
-        {
-            if (this.mSocketPeerState == SOCKET_PEER_STATE.CONNECTED)
-            {
-                ReadOnlySpan<byte> mBufferSegment = mCryptoMgr.Encode(nPackageId, buffer);
+                ArraySegment<byte> mBufferSegment = mJsCodec.Encode(mNetPackage.GetPackageId(), mNetPackage.GetData());
                 SendNetStream(mBufferSegment);
             }
             else { NetLog.LogError("SendNetData Failed: " + GetSocketState()); }
@@ -59,17 +49,7 @@ namespace KNet.WebSocket.Client
         {
             if (this.mSocketPeerState == SOCKET_PEER_STATE.CONNECTED)
             {
-                ReadOnlySpan<byte> mBufferSegment = mCryptoMgr.Encode(0, data);
-                SendNetStream(mBufferSegment);
-            }
-            else { NetLog.LogError("SendNetData Failed: " + GetSocketState()); }
-        }
-
-        public void SendNetData(ReadOnlySpan<byte> data)
-        {
-            if (this.mSocketPeerState == SOCKET_PEER_STATE.CONNECTED)
-            {
-                ReadOnlySpan<byte> mBufferSegment = mCryptoMgr.Encode(0, data);
+                ArraySegment<byte> mBufferSegment = mJsCodec.Encode(0, data);
                 SendNetStream(mBufferSegment);
             }
             else { NetLog.LogError("SendNetData Failed: " + GetSocketState()); }

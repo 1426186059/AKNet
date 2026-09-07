@@ -21,7 +21,7 @@ namespace KNet.WebSocket.Client
             bool bSuccess = false;
             lock (mReceiveStreamList)
             {
-                bSuccess = mCryptoMgr.Decode(mReceiveStreamList, mNetPackage);
+                bSuccess = mJsCodec.Decode(mReceiveStreamList, mNetPackage);
             }
             if (bSuccess)
             {
